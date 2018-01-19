@@ -11,7 +11,7 @@ using JuLIP.ASE.MatSciPy.NeighbourList
 
 #export centre_point
 
-include("generic.jl")
+include("Generic.jl")
 
 # ----- strucutre -----
 

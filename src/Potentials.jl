@@ -7,7 +7,7 @@ using PyCall
 using JuLIP
 using JuLIP.Potentials
 
-include("manatoms.jl")
+include("ManAtoms.jl")
 
 export idealbrittlesolid, calc_matscipy_ibs, plot_potential
 
