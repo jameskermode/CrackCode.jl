@@ -1,7 +1,7 @@
 # Tests for ManAtoms.jl
 
 using Base.Test
-using CrackCode.manatoms: seperation
+using CrackCode.ManAtoms: seperation
 using JuLIP: mat, AbstractAtoms, positions, set_positions!
 
 
