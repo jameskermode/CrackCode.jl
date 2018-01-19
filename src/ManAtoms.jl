@@ -3,6 +3,30 @@
 
 module ManAtoms
 
+using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions
+
+export seperation
+
+
+# there is not much need for this function!
+# Especially if the function descriptions is "Returns norm distance between pair of vectors."
+"""
+    seperation(object, indices)
+
+Returns norm distance between pair of positions.
+
+### Usage
+- `sep = seperation(atoms, [1 , 2])`
+- `sep = seperation(pos_crystal + u, [1 , 2])`
+### Arguements
+- `object`: either `AbstractAtoms` or JVecs{Float64}, ie, atoms object or positions
+- `indices`: pair of atom indices
+"""
+seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
+
+
+# Old code left for reference and eventually clean up
+
 using JuLIP
 using PyCall
 using PyPlot

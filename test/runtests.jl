@@ -1,31 +1,12 @@
-
-# include this folder as code
-current_directory = pwd()
-indices = search(current_directory, "crack-tip-clusters")
-path_repo = current_directory[1:indices[length(indices)]]
-path_code = joinpath(path_repo, "code", "julia_code", "main.jl")
-include(path_code)
-
+# Not an offical Julia repository so pull from link
+try
+    # if it already exists
+    Pkg.checkout("CrackCode")
+catch
+    Pkg.clone("https://github.com/lifelemons/CrackCode.jl")
+end
 
 using Base.Test
-using crack_stuff
+using CrackCode
 
-verbose=true
-
-code_tests = [
-   ("testmanatoms.jl", "manatoms"),
-]
-
-
-println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
-println("  Starting Tests")
-println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
-
-@testset "crack_stuff" begin
-   for (testfile, testid) in code_tests
-      println("=======================")
-      println("Testset: $(testid)")
-      println("=======================")
-      @testset "$(testid)" begin include(testfile); end
-   end
-end
+include("ManAtoms.jl")
