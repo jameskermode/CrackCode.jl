@@ -1,4 +1,4 @@
-module boundary_conditions
+module BoundaryConditions
 
 using JuLIP
 using PyCall

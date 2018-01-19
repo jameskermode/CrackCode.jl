@@ -1,6 +1,6 @@
 # Potentials
 
-module potentials
+module Potentials
 
 using PyPlot
 using PyCall

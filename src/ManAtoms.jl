@@ -1,7 +1,7 @@
 # Manlipulation of atoms object
 # or other atoms object properties
 
-module manatoms
+module ManAtoms
 
 using JuLIP
 using PyCall

@@ -2,7 +2,7 @@
 
 # basic plotting of atoms
 
-module plot
+module Plot
 
 using JuLIP
 

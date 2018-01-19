@@ -1,5 +1,5 @@
 
-module generic
+module Generic
 
 #export pad_subset_indices_array, bincount
 

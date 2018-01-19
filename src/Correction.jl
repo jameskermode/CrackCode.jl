@@ -1,5 +1,5 @@
 
-module correction
+module Correction
 
 using JuLIP
 using PyPlot
