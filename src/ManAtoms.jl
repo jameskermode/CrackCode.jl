@@ -9,17 +9,17 @@ export seperation
 
 
 # there is not much need for this function!
-# Especially if the function descriptions is "Returns norm distance between pair of vectors."
+# especially since it just returns the norm distance between pair of vectors
 """
     seperation(object, indices)
 
 Returns norm distance between pair of positions.
 
 ### Usage
-- `sep = seperation(atoms, [1 , 2])`
-- `sep = seperation(pos_crystal + u, [1 , 2])`
+- `seperation(atoms, [1 , 2])`
+- `seperation(pos_crystal + u, [1 , 2])`
 ### Arguements
-- `object`: either `AbstractAtoms` or JVecs{Float64}, ie, atoms object or positions
+- `object::AbstractAtoms` or `object::JVecs{Float64}`: atoms object or positions
 - `indices`: pair of atom indices
 """
 seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
