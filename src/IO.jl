@@ -26,7 +26,7 @@ function write(filename::AbstractString, atoms::AbstractAtoms,
                     pos::JVecs{Float64}, mode = :write)
     pos_original = get_positions(atoms)
     set_positions!(atoms, pos)
-    write(filename, atoms, mode)
+    JuLIP.write(filename, atoms, mode)
     set_positions!(atoms, pos_original)
 end
 
