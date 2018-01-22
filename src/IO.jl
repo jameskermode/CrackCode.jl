@@ -29,3 +29,6 @@ function write(filename::AbstractString, atoms::AbstractAtoms,
     write(filename, atoms, mode)
     set_positions!(atoms, pos_original)
 end
+
+
+end
