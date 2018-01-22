@@ -25,6 +25,28 @@ Returns norm distance between pair of positions.
 seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
 
 
+"""
+    `atoms_subsystem(atoms, indices)`
+
+Returns a new atoms object, of given indices, carved out of the given atoms object.
+Not super efficient memory wise!
+
+### Arguements
+- `atoms::AbstractAtoms`: atoms object
+- `indices`: list of atom indices
+"""
+function atoms_subsystem(atoms::AbstractAtoms, indices)
+
+    # copy and cut out rest of system
+    atoms_sub = deepcopy(atoms)
+    indices_inverse = setdiff(1:length(atoms), indices)
+    indices_inverse_py = indices_inverse .- 1
+    delete!(atoms_sub.po, indices_inverse_py)
+
+    return atoms_sub
+end
+
+
 # Old code left for reference and eventually clean up
 
 using JuLIP
