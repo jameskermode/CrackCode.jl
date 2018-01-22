@@ -2,7 +2,9 @@
 
 module IO
 
-using JuLIP: JVecs, AbstractAtoms, write
+import Base.write
+
+using JuLIP: JVecs, AbstractAtoms
 
 export write
 
@@ -26,7 +28,7 @@ function write(filename::AbstractString, atoms::AbstractAtoms,
                     pos::JVecs{Float64}, mode = :write)
     pos_original = get_positions(atoms)
     set_positions!(atoms, pos)
-    JuLIP.write(filename, atoms, mode)
+    write(filename, atoms, mode)
     set_positions!(atoms, pos_original)
 end
 
