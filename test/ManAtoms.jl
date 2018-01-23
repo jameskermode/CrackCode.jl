@@ -1,24 +1,56 @@
 # Tests for ManAtoms.jl
 
 using Base.Test
-using CrackCode.ManAtoms: seperation
-using JuLIP: mat, AbstractAtoms, positions, set_positions!
+using CrackCode.ManAtoms: seperation, do_w_mod_pos
+using JuLIP: mat, vecs, AbstractAtoms, Atoms, positions, set_positions!,
+            set_cell!, set_pbc!, set_calculator!, get_positions, forces
 
 
-# ----- seperation -----
-atoms = JuLIP.Atoms("Si2")
-new_pos = mat(positions(atoms))
-new_pos[:,1] = 1.0
-set_positions!(atoms, new_pos)
+atoms = Atoms("Si2")
+set_cell!(atoms, 10.0*eye(3))
+set_pbc!(atoms, true)
+pos = mat(get_positions(atoms))
+sep = 0.8
+pos[1,1] += -sep/2
+pos[1,2] += +sep/2
+pos = vecs(pos)
+set_positions!(atoms, pos)
+
+r0 = 1.0
+lj_spline = JuLIP.Potentials.lennardjones(r0=r0, e0=0.01, rcut = (1.0*r0, 1.2*r0))
+set_calculator!(atoms, lj_spline)
+
+# difference set of positions
+pos_mod = mat(copy(pos))
+pos_mod[1,1] = -sep/4
+pos_mod[1,2] = +sep/4
+pos_mod = vecs(pos_mod)
 
 @testset "ManAtoms" begin
-    @testset "Seperation" begin
-        @test seperation(atoms, [1, 2]) == sqrt(3)
-        @test seperation(atoms, [1, 2]) == sqrt(3)
+    @testset "seperation" begin
+        @test seperation(atoms, [1, 2]) == sep
+    end
+    @testset "do_w_new_pos" begin
+
+        # test that the positions are different before comparing them
+        @test get_positions(atoms) != pos_mod
+        @test get_positions(atoms) == pos
+
+        # test a property that we know will be different and the same if assigned
+        @test forces(atoms) != do_w_mod_pos(forces, atoms, pos_mod)
+        @test forces(atoms) == do_w_mod_pos(forces, atoms, pos)
+
+        # Hard coded numbers for LJ potential above - probably not a great idea!
+        @test norm(maximum(do_w_mod_pos(forces, atoms, pos_mod))) < 17808.15124511724 * (1 + 1e-15)
+        @test norm(maximum(do_w_mod_pos(forces, atoms, pos_mod))) > 17808.15124511724 * (1 - 1e-15)
+        @test norm(maximum(forces(atoms))) < 1.6105826944112733 * (1 + 1e-15)
+        @test norm(maximum(forces(atoms))) > 1.6105826944112733 * (1 - 1e-15)
+
+
+        # test that the positions were reverted back
+        @test get_positions(atoms) == pos
     end
 end
-
-
 
 # Old code left for reference and eventually clean up
 """
