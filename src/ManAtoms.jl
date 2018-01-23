@@ -18,7 +18,7 @@ Returns norm distance between pair of positions.
 ### Usage
 - `seperation(atoms, [1 , 2])`
 - `seperation(pos_crystal + u, [1 , 2])`
-### Arguements
+### Arguments
 - `object::AbstractAtoms` or `object::JVecs{Float64}`: atoms object or positions
 - `indices`: pair of atom indices
 """
@@ -31,7 +31,7 @@ seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
 Returns a new atoms object, of given indices, carved out of the given atoms object.
 Not super efficient memory wise!
 
-### Arguements
+### Arguments
 - `atoms::AbstractAtoms`: atoms object
 - `indices`: list of atom indices
 """
@@ -46,6 +46,38 @@ function atoms_subsystem(atoms::AbstractAtoms, indices)
     return atoms_sub
 end
 
+"""
+    `do_w_mod_pos(some_function::Function, atoms::AbstractAtoms, pos)`
+
+"Do with modified positions"
+Returns the given function's output given an atoms object and its modified positions
+
+### Usage
+- `do_w_mod_pos(forces, atoms, pos + u)`
+
+### Arguments
+- `do_function::Function`: some function that takes an atoms object
+- `atoms::AbstractAtoms`: atoms object
+- `pos`: positions
+
+TODO:
+- have arguments for the function
+- pass multiple functions to modify atoms and then get propery
+    - ie have a overall do_mod_atoms function?
+- macro may help?
+"""
+function do_w_mod_pos(do_function::Function, atoms::AbstractAtoms, pos)
+    # save and set modified positions
+    pos_original = get_positions(atoms)
+    set_positions!(atoms, pos)
+
+    fun_output = do_function(atoms)
+
+    # revert to initial positions
+    set_positions!(atoms, pos_original)
+
+    return fun_output
+end
 
 # Old code left for reference and eventually clean up
 
