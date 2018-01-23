@@ -4,7 +4,7 @@ module IO
 
 import Base.write
 
-using JuLIP: JVecs, AbstractAtoms
+using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!
 
 export write
 
