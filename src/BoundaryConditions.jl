@@ -280,7 +280,7 @@ function u_cle_old(atoms, tip; ν = 0.25)
 
     κ = 3 - 4 * ν
     r = sqrt.(x.^2 + y.^2)
-    θ = angle(x + im * y)
+    θ = angle.(x + im * y)
     ux = sqrt.(r) .* ((2*κ-1) * cos(θ/2) - cos(3*θ/2))
     uy = sqrt.(r) .* ((2*κ+1) * sin(θ/2) - sin(3*θ/2))
     uz = zeros(length(ux))
@@ -317,7 +317,7 @@ function u_cle(atoms, tip, K, E, ν)
 
     κ = 3 - 4 * ν
     r = sqrt.(x.^2 + y.^2)
-    θ = angle(x + im * y)
+    θ = angle.(x + im * y)
     C = (K / (2*√(2*pi)*E))*(1+ν)
 
     ux = C*sqrt.(r) .* ((2*κ-1) * cos(θ/2) - cos(3*θ/2))
