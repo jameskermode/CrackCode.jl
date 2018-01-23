@@ -148,7 +148,7 @@ function crosses_crack(atoms, i::Int, j::Array, tip)
 
     crack_bonds = []
     for _j in j
-        push!(crack_bonds, boundary_conditions.crosses_crack(atoms, i, _j, tip))
+        push!(crack_bonds, BoundaryConditions.crosses_crack(atoms, i, _j, tip))
     end
 
     return crack_bonds
@@ -201,7 +201,7 @@ function find_next_bond_along(atoms, bonds_list, a0, tip; tip_new = nothing)
     # of the nearby list find the atom with the most positive x position
     a1 = nearby[findmax(mat(pos[nearby])[1,:])[2]]
     # list of atoms bonded to a1
-    bonds_list_a1, mB_a1, list_a1 = boundary_conditions.get_bonds(atoms, a1, bonds_list = bonds_list)
+    bonds_list_a1, mB_a1, list_a1 = get_bonds(atoms, a1, bonds_list = bonds_list)
 
     # Note:
     #   - technically don't need above section, if you provided a bonds_list with crack bonds already removed
@@ -218,7 +218,7 @@ function find_next_bond_along(atoms, bonds_list, a0, tip; tip_new = nothing)
     end
 
     # next bond (hopfully just one bond) along the crack tip
-    _, _, across_crack = boundary_conditions.filter_crack_bonds(atoms, bonds_list_a1, tip_new)
+    _, _, across_crack = filter_crack_bonds(atoms, bonds_list_a1, tip_new)
 
     bond = across_crack
 
