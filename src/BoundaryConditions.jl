@@ -29,8 +29,8 @@ function radial_positions(atoms, point)
     z = mat(positions(atoms))[3, :]
     xp, yp, zp = x - tip_x, y - tip_y, z - tip_z
     r = sqrt.(xp.^2 + yp.^2 + zp.^2)
-    theta = atan2(yp, xp)
-    phi = acos(zp ./ r)
+    theta = atan2.(yp, xp)
+    phi = acos.(zp ./ r)
 
     return r, theta, phi
 end
@@ -281,8 +281,8 @@ function u_cle_old(atoms, tip; ν = 0.25)
     κ = 3 - 4 * ν
     r = sqrt.(x.^2 + y.^2)
     θ = angle.(x + im * y)
-    ux = sqrt.(r) .* ((2*κ-1) * cos(θ/2) - cos(3*θ/2))
-    uy = sqrt.(r) .* ((2*κ+1) * sin(θ/2) - sin(3*θ/2))
+    ux = sqrt.(r) .* ((2*κ-1) * cos.(θ/2) - cos.(3*θ/2))
+    uy = sqrt.(r) .* ((2*κ+1) * sin.(θ/2) - sin.(3*θ/2))
     uz = zeros(length(ux))
     return vecs([ux'; uy'; uz'])
 end
@@ -320,8 +320,8 @@ function u_cle(atoms, tip, K, E, ν)
     θ = angle.(x + im * y)
     C = (K / (2*√(2*pi)*E))*(1+ν)
 
-    ux = C*sqrt.(r) .* ((2*κ-1) * cos(θ/2) - cos(3*θ/2))
-    uy = C*sqrt.(r) .* ((2*κ+1) * sin(θ/2) - sin(3*θ/2))
+    ux = C*sqrt.(r) .* ((2*κ-1) * cos.(θ/2) - cos.(3*θ/2))
+    uy = C*sqrt.(r) .* ((2*κ+1) * sin.(θ/2) - sin.(3*θ/2))
     uz = zeros(length(ux))
 
     return vecs([ux'; uy'; uz'])
