@@ -9,7 +9,7 @@ using PyPlot: plot, scatter, axis, vlines, hlines
 
 """
 `plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5,
-                                                                linewidth=0.5)`
+                                                    linewidth=0.5, label="")`
 
 Plot bonds of given pairs
 
@@ -20,8 +20,9 @@ Plot bonds of given pairs
 - `colour`
 - `alpha`: transprancy channel
 - `linewidth`
+- `label`
 """
-function plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5, linewidth=0.5)
+function plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5, linewidth=0.5, label="")
 
     # semi-redundent because can just filter bonds_list pretty easily in input
     # consistent with atoms plotting though, can pass the same indices
@@ -32,14 +33,15 @@ function plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5
 
     pos = get_positions(atoms)
     for b in bonds_list
-        plot([pos[b[1]][1], pos[b[2]][1]], [pos[b[1]][2], [pos[b[2]][2]]], color=colour, alpha=0.5, linewidth=linewidth, linestyle="--")
+        plot([pos[b[1]][1], pos[b[2]][1]], [pos[b[1]][2], [pos[b[2]][2]]],
+                color=colour, alpha=0.5, linewidth=linewidth, linestyle="--", label=label)
     end
 
 end
 
 """
 `plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false,
-                                                        colour="b", scale=.1, )`
+                                                colour="b", scale=.1, label="")`
 
 Plot xy positions of atoms
 
@@ -50,15 +52,16 @@ Plot xy positions of atoms
 - `cell`: draw a box in xy plane repesenting the cell
 - `colour`
 - `scale`: size of atoms
+- `label`
 """
-function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, colour="b", scale=.1, )
+function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, colour="b", scale=.1, label="")
 
     if indices == nothing
         indices = linearindices(atoms)
     end
 
     p = mat(get_positions(atoms))
-    scatter(p[1,indices], p[2,indices], c=colour, s=scale)
+    scatter(p[1,indices], p[2,indices], c=colour, s=scale, label=label)
 
     axis(:equal)
 
@@ -72,7 +75,7 @@ function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, co
 
     if bonds_list != nothing
         if indices == linearindices(atoms)
-            plot_bonds(atoms, bonds_list)
+            plot_bonds(atoms, bonds_list, label=string(label, " - atoms_bonds")
         end
 
         # check if the boundary_conditions module is imported
@@ -83,7 +86,7 @@ function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, co
                     bonds_list_a_i, mB_a_i, list_a_i = boundary_conditions.get_bonds(atoms, a_i, bonds_list = bonds_list)
                     append!(b_i, list_a_i)
                 end
-                plot_bonds(atoms, bonds_list; indices=b_i)
+                plot_bonds(atoms, bonds_list; indices=b_i, label=string(label, " - atoms_bonds")
             end
         end
     end
@@ -92,7 +95,7 @@ end
 
 """
 `plot_circle(;radius=1.0, centre=[0.0,0.0,0.0], colour="blue", linewidth=1.0,
-                                                                linestyle="--")`
+                                                    linestyle="--", label="")`
 
 Plot circle of given radius around a given point
 
@@ -102,16 +105,17 @@ Plot circle of given radius around a given point
 - `colour`
 - `linewidth`
 - `linestyle`
+- `label`
 """
 function plot_circle(;radius=1.0, centre=[0.0,0.0,0.0], colour="blue",
-                                                linewidth=1.0, linestyle="--")
+                                                linewidth=1.0, linestyle="--", label="")
 
     interval_width = pi/20.0
 
     x = radius.*cos.(-pi:interval_width:pi) .+ centre[1]
     y = radius.*sin.(-pi:interval_width:pi) .+ centre[2]
 
-    plot(x , y, color=colour, linestyle=linestyle, linewidth=linewidth)
+    plot(x , y, color=colour, linestyle=linestyle, linewidth=linewidth, label=label)
 end
 
 end
