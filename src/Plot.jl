@@ -4,21 +4,22 @@
 
 module Plot
 
-using JuLIP
-
+using JuLIP: get_positions
+using PyPlot: plot, scatter, axis, vlines, hlines
 
 """
-    plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5, linewidth=0.5)
+`plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5,
+                                                                linewidth=0.5)`
 
 Plot bonds of given pairs
 
-#### Arguments
-- atoms: ASEAtoms
-- bonds_list: draw bonds of given indices pairs
-- indices : default will plot all, provide subset, ie [153, 154] to plot subset only
-- colour
-- alpha: transprancy channel
-- linewidth
+### Arguments
+- `atoms`: ASEAtoms
+- `bonds_list`: draw bonds of given indices pairs
+- `indices`: plot subset, default will plot all
+- `colour`
+- `alpha`: transprancy channel
+- `linewidth`
 """
 function plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5, linewidth=0.5)
 
@@ -37,18 +38,18 @@ function plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5
 end
 
 """
-    plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false,
-                    colour="b", scale=.1, )
+`plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false,
+                                                        colour="b", scale=.1, )`
 
 Plot xy positions of atoms
 
-#### Arguments
-- atoms: ASEAtoms
-- indices : default will plot all, provide subset, ie [153, 154] to plot subset only
-- bonds_list: draw bonds of given indices pairs
-- cell : draw a box in xy plane repesenting the cell
-- colour
-- scale: size of atoms
+### Arguments
+- `atoms`: ASEAtoms
+- `indices` : plot subset, default will plot all
+- `bonds_list`: draw bonds of given indices pairs
+- `cell`: draw a box in xy plane repesenting the cell
+- `colour`
+- `scale`: size of atoms
 """
 function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, colour="b", scale=.1, )
 
@@ -56,7 +57,7 @@ function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, co
         indices = linearindices(atoms)
     end
 
-    p = mat(positions(atoms))
+    p = mat(get_positions(atoms))
     scatter(p[1,indices], p[2,indices], c=colour, s=scale)
 
     axis(:equal)
