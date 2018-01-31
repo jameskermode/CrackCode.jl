@@ -34,8 +34,15 @@ function plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5
     pos = get_positions(atoms)
     for b in bonds_list
         plot([pos[b[1]][1], pos[b[2]][1]], [pos[b[1]][2], [pos[b[2]][2]]],
-                color=colour, alpha=0.5, linewidth=linewidth, linestyle="--", label=label)
+                color=colour, alpha=0.5, linewidth=linewidth, linestyle="--")
     end
+
+    # plot last one again with a label
+    # TODO: find better way to do this
+    b = bonds_list[length(bonds_list)]
+    plot([pos[b[1]][1], pos[b[2]][1]], [pos[b[1]][2], [pos[b[2]][2]]],
+            color=colour, alpha=0.5, linewidth=linewidth, linestyle="--", label=label)
+
 
 end
 
