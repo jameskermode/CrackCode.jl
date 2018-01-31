@@ -4,7 +4,7 @@
 
 module Plot
 
-using JuLIP: get_positions
+using JuLIP: get_positions, mat
 using PyPlot: plot, scatter, axis, vlines, hlines
 
 """
