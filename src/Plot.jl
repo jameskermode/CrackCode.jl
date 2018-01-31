@@ -90,4 +90,28 @@ function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, co
 
 end
 
+"""
+`plot_circle(;radius=1.0, centre=[0.0,0.0,0.0], colour="blue", linewidth=1.0,
+                                                                linestyle="--")`
+
+Plot circle of given radius around a given point
+
+### Arguments
+- `radius = 1.0`: radius of circle
+- `centre = [0.0,0.0]`: x y positions at which to centre the circle
+- `colour`
+- `linewidth`
+- `linestyle`
+"""
+function plot_circle(;radius=1.0, centre=[0.0,0.0,0.0], colour="blue",
+                                                linewidth=1.0, linestyle="--")
+
+    interval_width = pi/20.0
+
+    x = radius.*cos.(-pi:interval_width:pi) .+ centre[1]
+    y = radius.*sin.(-pi:interval_width:pi) .+ centre[2]
+
+    plot(x , y, color=colour, linestyle=linestyle, linewidth=linewidth)
+end
+
 end
