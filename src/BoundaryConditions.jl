@@ -228,7 +228,7 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
     a1 = nearby[index][1]
 
     # list of atoms bonded to a1
-    bonds_list_a1, mB_a1, list_a1 = CrackCode.BoundaryConditions.get_bonds(atoms, a1, bonds_list = bonds_list)
+    bonds_list_a1, mB_a1, list_a1 = BoundaryConditions.get_bonds(atoms, a1, bonds_list = bonds_list)
 
 
     # Note:
