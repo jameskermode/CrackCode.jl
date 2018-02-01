@@ -1,8 +1,6 @@
 module BoundaryConditions
 
-
-
-
+using PyPlot: plot, scatter, axis, legend
 
 
 
@@ -13,6 +11,8 @@ module BoundaryConditions
 
 using JuLIP
 using PyCall
+
+
 
 using JuLIP.Preconditioners: Exp
 
@@ -209,6 +209,7 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
     if plot == true
         # recalculate this, as I don't pass this in as an arguement
         # as theres not point for this function, but it makes for a nice plot
+        info("Ploting find_next_bond_along() info, this ")
         bonds_list, mB = BoundaryConditions.get_bonds(atoms, periodic_bc = false)
         bonds_list, _, across_crack_before = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip)
     end
@@ -247,9 +248,9 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
     bond = across_crack
 
     if plot == true
-        PyPlot.plot()
-        PyPlot.scatter(tip[1][1], tip[1][2], color="red", s=8, label="tip")
-        PyPlot.scatter(tip_new[1][1], tip_new[1][2], color="purple", s=8, label="tip next")
+        plot()
+        scatter(tip[1][1], tip[1][2], color="red", s=8, label="tip")
+        scatter(tip_new[1][1], tip_new[1][2], color="purple", s=8, label="tip next")
 
         Plot.plot_atoms(atoms)
 
