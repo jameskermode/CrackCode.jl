@@ -105,6 +105,11 @@ function get_bonds(atoms::AbstractAtoms, index::Int; bonds_list = nothing)
 
     mB_indices_list = midpoints(atoms, bonds_list[indices_list])
 
+    # not much need for indices_list, this is the indices of the bonds of the new list in the given bonds list
+    # but used to filter the original bonds_list, maybe just return one?
+    # eg where bonds_list is the original bonds_list, are the same
+    # CrackCode.Plot.plot_bonds(atoms, bonds_list, indices=list_a1)
+    # CrackCode.Plot.plot_bonds(atoms, bonds_list_a1)
     return bonds_list[indices_list], mB_indices_list, indices_list
 
 end
@@ -186,22 +191,45 @@ function filter_crack_bonds(atoms::AbstractAtoms, bonds_list, crack_tip)
 end
 
 """
-    find_next_bond_along(atoms, tip, a0)
+`find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)`
 
-Compute the bond that is beyond, (default) +a0/2 in x, the crack tip
+Find the bond that is beyond the crack tip
 
+### Arguments
+- `atoms`: Atoms object
+- `bonds_list`: list of bond tuples
+- `a0`: lattice spacing
+- `tip`: current tip position
+- `tip_new`: next tip position, advanced by one bond
+- `plot=false`: plot to visually show if it worked
 """
-function find_next_bond_along(atoms, bonds_list, a0, tip; tip_new = nothing)
+function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
+
+    # have as a seperate function? would need to recalculate or output all variables
+    if plot == true
+        # recalculate this, as I don't pass this in as an arguement
+        # as theres not point for this function, but it makes for a nice plot
+        bonds_list, mB = BoundaryConditions.get_bonds(atoms, periodic_bc = false)
+        bonds_list, _, across_crack_before = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip)
+    end
 
     pos = get_positions(atoms)
     radial_distances = norm.(pos .- tip)
 
     # all atoms near the current (given) crack tip
     nearby = find( radial_distances .< a0 )
-    # of the nearby list find the atom with the most positive x position
-    a1 = nearby[findmax(mat(pos[nearby])[1,:])[2]]
+
+    # of the nearby list find the atom with the closest distance from the tip
+    distances = zeros(length(nearby))
+    for i in 1:length(nearby)
+        distances[i] = norm(tip[1] - atoms[nearby[i]])
+    end
+    index = find(distances .== minimum(distances))
+    a1 = nearby[index][1]
+
     # list of atoms bonded to a1
-    bonds_list_a1, mB_a1, list_a1 = get_bonds(atoms, a1, bonds_list = bonds_list)
+    bonds_list_a1, mB_a1, list_a1 = CrackCode.BoundaryConditions.get_bonds(atoms, a1, bonds_list = bonds_list)
+
 
     # Note:
     #   - technically don't need above section, if you provided a bonds_list with crack bonds already removed
@@ -211,16 +239,31 @@ function find_next_bond_along(atoms, bonds_list, a0, tip; tip_new = nothing)
     #   - crack in single line, x, this might be fine, might need something like this for crack that moves in plane
     #   - currently only works in x, would need to change filter_crack_bonds as that only works in x too
 
-    # new crack tip point, progressed by half an bond length
     # likely to not generalise to other systems, might get more than one that crosses
-    if tip_new == nothing
-        tip_new = vecs((mat(tip) .+ [a0/2, 0.0, 0.0]))
-    end
 
     # next bond (hopfully just one bond) along the crack tip
-    _, _, across_crack = filter_crack_bonds(atoms, bonds_list_a1, tip_new)
+    _, _, across_crack = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip_new)
 
     bond = across_crack
+
+    if plot == true
+        PyPlot.plot()
+        PyPlot.scatter(tip[1][1], tip[1][2], color="red", s=8, label="tip")
+        PyPlot.scatter(tip_new[1][1], tip_new[1][2], color="purple", s=8, label="tip next")
+
+        Plot.plot_atoms(atoms)
+
+        Plot.plot_atoms(atoms, indices=nearby, colour="blue", scale=5, label="nearby to tip")
+        Plot.plot_circle(radius=a0, centre=tip[1], colour="grey", label="nearby radius")
+
+        Plot.plot_atoms(atoms, indices=a1, colour="green", scale=10, label="chosen nearby atom")
+
+        Plot.plot_bonds(atoms, across_crack_before, linewidth=0.5, label="across crack")
+        Plot.plot_bonds(atoms, across_crack, linewidth=2.0, label="next bond")
+
+        axis(Generic.box_around_point([tip[1][1], tip[1][2]], [2.5*a0,2.5*a0]))
+        legend()
+    end
 
     return bond
 
