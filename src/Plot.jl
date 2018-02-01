@@ -85,12 +85,12 @@ function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, co
             plot_bonds(atoms, bonds_list, label=string(label, " - atoms_bonds"))
         end
 
-        # check if the boundary_conditions module is imported
-        if isdefined(:boundary_conditions) == true
+        # check if the BoundaryConditions module is imported
+        if isdefined(:BoundaryConditions) == true
             if indices != linearindices(atoms)
                 b_i = []
                 for a_i in indices
-                    bonds_list_a_i, mB_a_i, list_a_i = boundary_conditions.get_bonds(atoms, a_i, bonds_list = bonds_list)
+                    bonds_list_a_i, mB_a_i, list_a_i = BoundaryConditions.get_bonds(atoms, a_i, bonds_list = bonds_list)
                     append!(b_i, list_a_i)
                 end
                 plot_bonds(atoms, bonds_list; indices=b_i, label=string(label, " - atoms_bonds"))
