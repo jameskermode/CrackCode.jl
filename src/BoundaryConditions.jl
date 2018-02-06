@@ -200,6 +200,10 @@ Find the bond that is beyond the crack tip
 - `tip`: current tip position
 - `tip_new`: next tip position, advanced by one bond
 - `plot=false`: plot to visually show if it worked
+
+### Notes
+- not always guarantee to be one bond, fix
+
 """
 function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
 
@@ -231,8 +235,14 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
 
     # likely to not generalise to other systems, might get more than one that crosses
 
+    # should sperate this part out?
+    # as filter_crack_bonds is already a function then the find_next_bond_along()
+    # algorithim is by it self, maybe need to change the name
+
     # next bond (hopfully just one bond) along the crack tip
     _, _, across_crack = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip_new)
+
+
 
     bond = across_crack
 
