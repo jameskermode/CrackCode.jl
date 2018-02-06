@@ -203,16 +203,7 @@ Find the bond that is beyond the crack tip
 - `tip_new`: next tip position, advanced by one bond
 - `plot=false`: plot to visually show if it worked
 """
-function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
-
-    # have as a seperate function? would need to recalculate or output all variables
-    if plot == true
-        # recalculate this, as I don't pass this in as an arguement
-        # as theres not point for this function, but it makes for a nice plot
-        info("Ploting find_next_bond_along info, this takes time")
-        bonds_list, mB = BoundaryConditions.get_bonds(atoms, periodic_bc = false)
-        bonds_list, _, across_crack_before = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip)
-    end
+function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
 
     pos = get_positions(atoms)
     radial_distances = norm.(pos .- tip)
@@ -246,25 +237,6 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
     _, _, across_crack = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip_new)
 
     bond = across_crack
-
-    if plot == true
-        # plot()
-        scatter(tip[1][1], tip[1][2], color="red", s=8, label="tip")
-        scatter(tip_new[1][1], tip_new[1][2], color="purple", s=8, label="tip next")
-
-        Plot.plot_atoms(atoms)
-
-        Plot.plot_atoms(atoms, indices=nearby, colour="blue", scale=5, label="nearby to tip")
-        Plot.plot_circle(radius=a0, centre=tip[1], colour="grey", label="nearby radius")
-
-        Plot.plot_atoms(atoms, indices=a1, colour="green", scale=10, label="chosen nearby atom")
-
-        Plot.plot_bonds(atoms, across_crack_before, linewidth=0.5, label="across crack")
-        Plot.plot_bonds(atoms, across_crack, linewidth=2.0, label="next bond")
-
-        axis(Generic.box_around_point([tip[1][1], tip[1][2]], [2.5*a0,2.5*a0]))
-        legend()
-    end
 
     return bond
 
