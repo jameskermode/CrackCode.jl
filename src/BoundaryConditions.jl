@@ -1,7 +1,5 @@
 module BoundaryConditions
 
-using PyPlot: plot, scatter, axis, legend
-
 
 
 
