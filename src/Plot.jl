@@ -184,8 +184,12 @@ a visual check for the above function to make sure its selected the correct bond
 """
 function plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_crack_next)
 
+    # poor way of doing it as if BoundaryConditions.find_next_bond_along()
+    # changes this section will need to be change too
+
     # recalculate some values to plot
     # variables: nearby, a1
+    # section: from BoundaryConditions.find_next_bond_along()
     pos = get_positions(atoms)
     radial_distances = norm.(pos .- tip)
 
@@ -199,6 +203,7 @@ function plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_cra
     end
     index = find(distances .== minimum(distances))
     a1 = nearby[index][1]
+    # section: end
 
     scatter(tip[1][1], tip[1][2], color="red", s=8, label="tip")
     scatter(tip_next[1][1], tip_next[1][2], color="purple", s=8, label="tip next")
