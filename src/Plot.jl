@@ -7,6 +7,45 @@ module Plot
 using JuLIP: get_positions, mat
 using PyPlot: plot, scatter, axis, vlines, hlines
 
+
+"""
+`box_around_point(point, box_width)`
+
+2D (x,y) limits of a box, centred on `point` of width `box_width`
+
+### Usage
+`box_around_point(tip, [20,10])`
+
+Generally used in
+`axis(box_around_point(tip, [20,10]))`
+
+### Arguements
+- `point`: eg [x, y, z]
+- `box_width`: [width of x, width of y]
+
+### Returns
+`x_min`, `x_max`, `y_min`, `y_max`
+
+"""
+# Not much need for this function, can just write the limits
+# especially if its only used in axis
+function box_around_point(point, box_width)
+
+    x_c = point[1]
+    y_c = point[2]
+
+    box_width_x = box_width[1]
+    box_width_y = box_width[2]
+
+    x_min = x_c - box_width_x
+    x_max = x_c + box_width_x
+
+    y_min = y_c - box_width_y
+    y_max = y_c + box_width_y
+
+    return x_min, x_max, y_min, y_max
+end
+
 """
 `plot_bonds(atoms, bonds_list; indices=nothing, colour="grey", alpha=0.5,
                                                     linewidth=0.5, label="")`

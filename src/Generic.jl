@@ -34,22 +34,6 @@ function bincount(bins_array, array_to_count)
     return counted
 end
 
-function box_around_point(point, box_width)
-
-    x_c = point[1]
-    y_c = point[2]
-
-    box_width_x = box_width[1]
-    box_width_y = box_width[2]
-
-    x_min = x_c - box_width_x
-    x_max = x_c + box_width_x
-
-    y_min = y_c - box_width_y
-    y_max = y_c + box_width_y
-
-    return x_min, x_max, y_min, y_max
-end
 
 
 
