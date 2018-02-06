@@ -276,7 +276,7 @@ function build_boundary_clamp(atoms, thickness=false)
 end
 
 """
-    u_cle_old(atoms, tip; ν = 0.25)
+    u_cle_old(atoms, tip; nu = 0.25)
 
 Displacement field, Continuum Linear Elastic solution.
 Returns displacements in cartesian coordinates.
@@ -289,20 +289,20 @@ Isotropic crack solution:
 
 ``C = (K_I √(2π)) / (8μπ)``
 
-``κ = 3 - 4ν``
+``κ = 3 - 4nu``
 
 where the formula for ``κ `` is the one for plane strain
-(plane stress is different) and ``ν`` is Poisson ratio, i.e., ``ν = 1/4``
+(plane stress is different) and ``nu`` is Poisson ratio, i.e., ``nu = 1/4``
 and hence ``κ = 2``
 """
-function u_cle_old(atoms, tip; ν = 0.25)
+function u_cle_old(atoms, tip; nu = 0.25)
 
     pos = mat(get_positions(atoms) .- tip)
 
     x = pos[1,:]
     y = pos[2,:]
 
-    κ = 3 - 4 * ν
+    κ = 3 - 4 * nu
     r = sqrt.(x.^2 + y.^2)
     θ = angle.(x + im * y)
     ux = sqrt.(r) .* ((2*κ-1) * cos.(θ/2) - cos.(3*θ/2))
@@ -313,7 +313,7 @@ end
 
 
 """
-    u_cle(atoms, tip, K, E, ν)
+    u_cle(atoms, tip, K, E, nu)
 
 Displacement field, Continuum Linear Elastic solution.
 Returns displacements in cartesian coordinates.
@@ -324,25 +324,25 @@ Isotropic crack solution:
 
 ``u_y = C √r [ (2κ + 1)sin(θ/2) - sin(3θ/2) ]``
 
-``C = K / (2√(2pi)E))*(1+ν)``
+``C = K / (2√(2pi)E))*(1+nu)``
 
-``κ = 3 - 4ν``
+``κ = 3 - 4nu``
 
 where the formula for ``κ `` is the one for plane strain
-(plane stress is different), ``ν`` is Poisson ratio and
+(plane stress is different), ``nu`` is Poisson ratio and
 E is the Youngs Modulus
 """
-function u_cle(atoms, tip, K, E, ν)
+function u_cle(atoms, tip, K, E, nu)
 
     pos = mat(get_positions(atoms) .- tip)
 
     x = pos[1,:]
     y = pos[2,:]
 
-    κ = 3 - 4 * ν
+    κ = 3 - 4 * nu
     r = sqrt.(x.^2 + y.^2)
     θ = angle.(x + im * y)
-    C = (K / (2*√(2*pi)*E))*(1+ν)
+    C = (K / (2*√(2*pi)*E))*(1+nu)
 
     ux = C*sqrt.(r) .* ((2*κ-1) * cos.(θ/2) - cos.(3*θ/2))
     uy = C*sqrt.(r) .* ((2*κ+1) * sin.(θ/2) - sin.(3*θ/2))
