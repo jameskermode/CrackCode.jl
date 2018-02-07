@@ -418,12 +418,9 @@ Able to perform multiple hessian correction steps
 function hessian_correction(atoms::AbstractAtoms, u, Idof; H = nothing, steps = 1)
 
     u_c = []
-    u_step = []
+    u_step = u # for step == 1
 
     for step in 1:steps
-        if step == 1
-            u_step = u
-        end
 
         pos_original = get_positions(atoms)
         set_positions!(atoms, pos_original + u_step)
@@ -433,14 +430,14 @@ function hessian_correction(atoms::AbstractAtoms, u, Idof; H = nothing, steps = 
         end
         f = forces(atoms)
 
-        u_c = hessian_correction(u_step, H, f, Idof)
+        u_step = hessian_correction(u_step, H, f, Idof)
 
         set_positions!(atoms, pos_original)
 
-        u_step = u_c
+        u_c = u_step
     end
 
-    return u_step
+    return u_c
 end
 
 """
