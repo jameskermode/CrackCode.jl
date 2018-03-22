@@ -85,7 +85,7 @@ using JuLIP
 using PyCall
 using PyPlot
 
-using ASE.MatSciPy.NeighbourList
+using ASE
 
 #export centre_point
 
