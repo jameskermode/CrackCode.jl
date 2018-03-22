@@ -4,9 +4,9 @@
 
 module Plot
 
-using JuLIP: get_positions, mat
+using JuLIP: get_positions, mat, get_cell
 using PyPlot: plot, scatter, axis, vlines, hlines, legend, title
-
+using ASE
 
 """
 `box_around_point(point, box_width)`

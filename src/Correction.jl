@@ -4,7 +4,8 @@ module Correction
 using JuLIP
 using PyPlot
 
-using JuLIP.ASE.MatSciPy.NeighbourList
+using ASE
+
 
 function calc_mapping_list(atoms_1, atoms_2)
 

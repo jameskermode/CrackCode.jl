@@ -6,6 +6,7 @@ using PyPlot
 using PyCall
 using JuLIP
 using JuLIP.Potentials
+using ASE
 
 include("ManAtoms.jl")
 
