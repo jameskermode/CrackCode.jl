@@ -10,7 +10,8 @@ module BoundaryConditions
 using JuLIP
 using PyCall
 
-
+using JuLIP: set_pbc!, get_pbc
+using ASE.MatSciPy: NeighbourList
 
 using JuLIP.Preconditioners: Exp
 
@@ -66,13 +67,17 @@ function get_bonds(atoms::AbstractAtoms; periodic_bc = nothing )
 
     # something doesnt get recalculated when calling get_bonds on an atoms object that it has been called on
     # might be bonds( ... ) below
-    for (i, j, r, R, S) in bonds(atoms, cutoff(atoms.calc)+1e-15)
+    nlist = NeighbourList(atoms, cutoff(atoms.calc)+1e-15)
+    for k in 1:length(nlist.i)
+        i = nlist.i[k] 
+        j = nlist.j[k]
         if i < j
             push!(bonds_list, (i,j))
         end
     end
 
-    mB = midpoints(atoms, bonds_list)
+    pos = get_positions(atoms)
+    mB = [ 0.5*(pos[pair[1]] + pos[pair[2]])  for pair in bonds_list]
 
     set_pbc!(atoms, original_pbc)
 
@@ -189,7 +194,7 @@ function filter_crack_bonds(atoms::AbstractAtoms, bonds_list, crack_tip)
 end
 
 """
-`find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)`
+`find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)`
 
 Find the bond that is beyond the crack tip
 
