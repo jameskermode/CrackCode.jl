@@ -3,7 +3,8 @@
 
 module ManAtoms
 
-using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions
+using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
+using ASE: ASEAtoms
 
 export seperation
 
@@ -35,7 +36,7 @@ Not super efficient memory wise!
 - `atoms::AbstractAtoms`: atoms object
 - `indices`: list of atom indices
 """
-function atoms_subsystem(atoms::AbstractAtoms, indices)
+function atoms_subsystem(atoms::ASEAtoms, indices)
 
     # copy and cut out rest of system
     atoms_sub = deepcopy(atoms)
