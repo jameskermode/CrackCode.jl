@@ -7,11 +7,13 @@ module BoundaryConditions
 
 ### Old code
 
-using JuLIP
-using PyCall
+#using JuLIP
+#using PyCall
 
-using JuLIP: set_pbc!, get_pbc
-using ASE.MatSciPy: NeighbourList
+using JuLIP: AbstractAtoms, mat, vecs, set_pbc!, get_pbc, get_positions, set_positions!, get_cell, set_cell!,
+                cutoff
+using NeighbourLists: PairList
+#using ASE.MatSciPy: NeighbourList
 
 using JuLIP.Preconditioners: Exp
 
@@ -67,7 +69,7 @@ function get_bonds(atoms::AbstractAtoms; periodic_bc = nothing )
 
     # something doesnt get recalculated when calling get_bonds on an atoms object that it has been called on
     # might be bonds( ... ) below
-    nlist = NeighbourList(atoms, cutoff(atoms.calc)+1e-15)
+    nlist = PairList(pos, cutoff(atoms.calc), get_cell(atoms), get_pbc(atoms))
     for k in 1:length(nlist.i)
         i = nlist.i[k] 
         j = nlist.j[k]
@@ -83,7 +85,7 @@ function get_bonds(atoms::AbstractAtoms; periodic_bc = nothing )
 
     # atoms.transient is set when calling bonds(atoms, cutoff(atoms.calc)+1e-15)
     # why delete? when calling again it won't recalculate and thus use the same bonds list
-    delete!(atoms.transient, (:nlist, cutoff(atoms.calc)+1e-15))
+    #delete!(atoms.transient, (:nlist, cutoff(atoms.calc)+1e-15))
 
     return bonds_list, mB
 end
@@ -187,7 +189,7 @@ function filter_crack_bonds(atoms::AbstractAtoms, bonds_list, crack_tip)
 
     bonds_list = filter(array -> array ∉ across_crack, bonds_list)
 
-    P = positions(atoms)
+    P = get_positions(atoms)
     mB = [ 0.5*(P[b[1]] + P[b[2]])  for b in bonds_list]
 
     return bonds_list, mB, across_crack
@@ -220,8 +222,9 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
 
     # of the nearby list find the atom with the closest distance from the tip
     distances = zeros(length(nearby))
+    pos = get_positions(atoms)
     for i in 1:length(nearby)
-        distances[i] = norm(tip[1] - atoms[nearby[i]])
+        distances[i] = norm(tip[1] - pos[nearby[i]])
     end
     index = find(distances .== minimum(distances))
     a1 = nearby[index][1]
