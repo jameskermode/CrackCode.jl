@@ -98,16 +98,17 @@ Plot xy positions of atoms
 - `cell`: draw a box in xy plane repesenting the cell
 - `colour`
 - `scale`: size of atoms
+- `alpah`: transparency
 - `label`
 """
-function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, colour="b", scale=.1, label="")
+function plot_atoms(atoms; indices=nothing, bonds_list = nothing, cell=false, colour="b", scale=.1, alpha=1, label="")
 
     if indices == nothing
         indices = linearindices(atoms)
     end
 
     p = mat(get_positions(atoms))
-    scatter(p[1,indices], p[2,indices], c=colour, s=scale, label=label)
+    scatter(p[1,indices], p[2,indices], c=colour, s=scale, alpha=alpha, label=label)
 
     axis(:equal)
 
@@ -198,8 +199,9 @@ function plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_cra
 
     # of the nearby list find the atom with the closest distance from the tip
     distances = zeros(length(nearby))
+    pos = get_positions(atoms)
     for i in 1:length(nearby)
-        distances[i] = norm(tip[1] - atoms[nearby[i]])
+        distances[i] = norm(tip[1] - pos[nearby[i]])
     end
     index = find(distances .== minimum(distances))
     a1 = nearby[index][1]
