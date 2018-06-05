@@ -6,7 +6,7 @@ module ManAtoms
 using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
 using ASE: ASEAtoms
 
-export seperation
+export seperation, dimer, atoms_subsystem
 
 
 # there is not much need for this function!
@@ -24,6 +24,32 @@ Returns norm distance between pair of positions.
 - `indices`: pair of atom indices
 """
 seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
+
+    """
+    `dimer(element = "H"; seperation = 1.0, cell_size = 30.0)`
+
+    Build a dimer object with specifc seperation and cell size
+
+    ### Arguments
+    - element : chemical element
+    - seperation : distance between atoms along x axis
+    - cell_size : (same in all directions)
+    """
+    function dimer(element = "H"; seperation = 1.0, cell_size = 30.0)
+
+        a_string = join([element, "2"])
+        atoms = Atoms(ASEAtoms(a_string))
+        set_cell!(atoms, cell_size*eye(3))
+        set_pbc!(atoms, true)
+        positions = mat(get_positions(atoms))
+    
+        positions[1,1] += -seperation/2
+        positions[1,2] += +seperation/2
+    
+        set_positions!(atoms, positions)
+    
+        return atoms
+    end
 
 
 """
@@ -128,32 +154,6 @@ end
 
 
 # ----- build atoms -----
-
-"""
-    dimer(element ; seperation=1.0, cell_size=30.0)
-
-Build a dimer object with specifc seperation and cell size
-#### Arguments
-- element : chemical element
-- (optional keyword) seperation : distance between atom along x axis
-- (optional keyword) cell_size : float, same in all directions
-"""
-
-function dimer(element="Si", ; seperation=1.0, cell_size=30.0)
-
-    a_string = join([element, "2"])
-    atoms = ASEAtoms(a_string)
-    set_cell!(atoms, cell_size*eye(3))
-    set_pbc!(atoms, true)
-    positions = mat(get_positions(atoms))
-
-    positions[1,1] += -seperation/2
-    positions[1,2] += +seperation/2
-
-    set_positions!(atoms, positions)
-
-    return atoms
-end
 
 """
     triangular_lattice_slab(a, N_x, N_y)
