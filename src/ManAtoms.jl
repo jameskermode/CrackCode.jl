@@ -6,24 +6,34 @@ module ManAtoms
     using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
     using ASE: ASEAtoms
 
+    using JuLIP: JVecF, Atoms, get_positions
+
     export seperation, dimer, atoms_subsystem
 
-
-    # there is not much need for this function!
-    # especially since it just returns the norm distance between pair of vectors
     """
-        seperation(object, indices)
+    `separation(atoms::Atoms, i::Int, j::Int) `
 
     Returns norm distance between pair of positions.
 
-    ### Usage
-    - `seperation(atoms, [1 , 2])`
-    - `seperation(pos_crystal + u, [1 , 2])`
     ### Arguments
-    - `object::AbstractAtoms` or `object::JVecs{Float64}`: atoms object or positions
-    - `indices`: pair of atom indices
+    - `atoms::Atoms` or `pos::Array{JVecF}`
+    - i::Int, j::Int or pair::Tuple{Int, Int} or pairs::Array{Tuple{Int, Int}} : atom pair(s)
     """
-    seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
+    separation(pos::Array{JVecF}, i::Int, j::Int) = norm(pos[j] - pos[i])
+    separation(pos::Array{JVecF}, pair::Tuple{Int, Int}) = separation(pos, pair[1], pair[2])
+    separation(atoms::Atoms, i::Int, j::Int) = separation(get_positions(atoms), i, j)
+    separation(atoms::Atoms, pair::Tuple{Int, Int}) = separation(atoms, pair[1], pair[2])
+
+    function separation(pos::Array{JVecF}, pairs::Array{Tuple{Int, Int}})
+        len = length(pairs)
+        seps = zeros(len)
+        for n in 1:len
+            seps[n] = separation(pos, pairs[n])
+        end
+        return seps
+    end
+    separation(atoms::Atoms, pairs::Array{Tuple{Int, Int}}) = separation(get_positions(atoms), pairs = pairs)
+
 
     """
     `dimer(element = "H"; seperation = 1.0, cell_size = 30.0)`
