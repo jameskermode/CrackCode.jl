@@ -1,16 +1,16 @@
 # Tests for ManAtoms.jl
 
 using Base.Test
-using CrackCode.ManAtoms: seperation, do_w_mod_pos
+using CrackCode.ManAtoms: separation, do_w_mod_pos
 using JuLIP: mat, vecs, AbstractAtoms, Atoms, positions, set_positions!,
             set_cell!, set_pbc!, set_calculator!, get_positions, forces
 
 
-using JuLIP: bulk, get_positions # test seperation
+using JuLIP: bulk, get_positions # test separation
 
 # newer test set 
 @testset "ManAtoms" begin
-    @testset "seperation" begin
+    @testset "separation" begin
         
         # setup
         atoms = bulk(:Si, cubic=true)
@@ -62,8 +62,8 @@ pos_mod = vecs(pos_mod)
 
 @testset "ManAtoms" begin
     # test moved to new section 
-    #@testset "seperation" begin
-        #@test seperation(atoms, [1, 2]) == sep
+    #@testset "separation" begin
+        #@test separation(atoms, [1, 2]) == sep
     #end
     @testset "do_w_new_pos" begin
 
@@ -105,13 +105,13 @@ using Base.Test
 
 
 # ----- test dimer -----
-seperation = 4.0
+separation = 4.0
 cell_size = 15.0
-atoms_dimer = manatoms.dimer("Cu", seperation=seperation, cell_size=cell_size)
+atoms_dimer = manatoms.dimer("Cu", separation=separation, cell_size=cell_size)
 
 @test atoms_dimer.po["get_chemical_symbols"]() == ["Cu", "Cu"]
-@test mat(get_positions(atoms_dimer))[1,1] == -seperation/2
-@test mat(get_positions(atoms_dimer))[1,2] == seperation/2
+@test mat(get_positions(atoms_dimer))[1,1] == -separation/2
+@test mat(get_positions(atoms_dimer))[1,2] == separation/2
 @test get_cell(atoms_dimer)[1,1] == 15.0
 
 # ----- test centre_point -----
