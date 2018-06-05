@@ -34,6 +34,26 @@ module ManAtoms
     end
     separation(atoms::Atoms, pairs::Array{Tuple{Int, Int}}) = separation(get_positions(atoms), pairs = pairs)
 
+    """
+    `systemsize(atoms::Atoms)`
+    `systemsize(pos::Array{JVecF})`
+
+    Obtain the size of the system using the extreme positions of the atoms in each direction (rather than cell size).
+    """
+    function systemsize(pos::Array{JVecF})
+        pos_m = mat(pos)
+        x = pos_m[1,:]
+        y = pos_m[2,:]
+        z = pos_m[3,:]
+        x_max = maximum(x); x_min = minimum(x)
+        y_max = maximum(y); y_min = minimum(y)   
+        z_max = maximum(z); z_min = minimum(z)
+    
+        systemlengths = [x_max - x_min, y_max - y_min, z_max - z_min]
+        return systemlengths
+    end
+    systemsize(atoms::Atoms) = systemsize(get_positions(atoms))
+
 
     """
     `dimer(element = "H"; seperation = 1.0, cell_size = 30.0)`
