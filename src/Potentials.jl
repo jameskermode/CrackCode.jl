@@ -59,7 +59,7 @@ using ASE
     end
 
     function potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)    
-        atoms = dimer("H", cell_size = cell_size)
+        atoms = ManAtoms.dimer("H", cell_size = cell_size)
         return potential_energy(atoms, potential; r_a = r_a, r_b = r_b, points = points)
     end
 
@@ -107,7 +107,7 @@ using ASE
     end
 
     function potential_forces(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)
-        atoms = dimer("H", cell_size = cell_size)
+        atoms = ManAtoms.dimer("H", cell_size = cell_size)
         return potential_forces(atoms, potential; r_a = r_a, r_b = r_b, points = points)
     end
 
