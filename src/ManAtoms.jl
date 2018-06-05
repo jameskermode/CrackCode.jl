@@ -32,7 +32,7 @@ module ManAtoms
         end
         return seps
     end
-    separation(atoms::Atoms, pairs::Array{Tuple{Int, Int}}) = separation(get_positions(atoms), pairs = pairs)
+    separation(atoms::Atoms, pairs::Array{Tuple{Int, Int}}) = separation(get_positions(atoms), pairs)
 
     """
     `systemsize(atoms::Atoms)`
