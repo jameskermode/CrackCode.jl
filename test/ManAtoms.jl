@@ -6,6 +6,40 @@ using JuLIP: mat, vecs, AbstractAtoms, Atoms, positions, set_positions!,
             set_cell!, set_pbc!, set_calculator!, get_positions, forces
 
 
+using JuLIP: bulk, get_positions # test seperation
+
+# newer test set 
+@testset "ManAtoms" begin
+    @testset "seperation" begin
+        
+        # setup
+        atoms = bulk(:Si, cubic=true)
+        pos0 = get_positions(atoms)
+        pairs = [(1,2), (3,4), (2,3)]
+        pair = pairs[1]
+        b0 = norm(pos0[pair[2]] - pos0[pair[1]])
+        tol = 1e-10
+
+        sep = separation(pos0, pair[1], pair[2])
+        @test abs(sep - b0) <= 0.0 + tol
+        
+        sep = separation(pos0, pair)
+        @test abs(sep - b0) <= 0.0 + tol
+        
+        sep = separation(atoms, pair[1], pair[2])
+        @test abs(sep - b0) <= 0.0 + tol
+        
+        sep = separation(atoms, pair)
+        @test abs(sep - b0) <= 0.0 + tol
+        
+        sep = separation(atoms, pairs)
+        @test maximum(abs.(sep - b0)) .<= 0.0 + tol
+    end
+end
+
+
+
+
 atoms = Atoms("Si2")
 set_cell!(atoms, 10.0*eye(3))
 set_pbc!(atoms, true)
@@ -27,9 +61,10 @@ pos_mod[1,2] = +sep/4
 pos_mod = vecs(pos_mod)
 
 @testset "ManAtoms" begin
-    @testset "seperation" begin
-        @test seperation(atoms, [1, 2]) == sep
-    end
+    # test moved to new section 
+    #@testset "seperation" begin
+        #@test seperation(atoms, [1, 2]) == sep
+    #end
     @testset "do_w_new_pos" begin
 
         # test that the positions are different before comparing them
@@ -41,6 +76,7 @@ pos_mod = vecs(pos_mod)
         @test forces(atoms) == do_w_mod_pos(forces, atoms, pos)
 
         # Hard coded numbers for LJ potential above - probably not a great idea!
+        # If these fail, something with the potential has likely changed
         @test norm(maximum(do_w_mod_pos(forces, atoms, pos_mod))) < 17808.15124511724 * (1 + 1e-15)
         @test norm(maximum(do_w_mod_pos(forces, atoms, pos_mod))) > 17808.15124511724 * (1 - 1e-15)
         @test norm(maximum(forces(atoms))) < 1.6105826944112733 * (1 + 1e-15)
