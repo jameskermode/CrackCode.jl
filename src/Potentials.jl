@@ -8,59 +8,59 @@ using JuLIP
 using JuLIP.Potentials
 using ASE
 
-using JuLIP: Atoms, mat, get_positions, set_positions!, set_calculator!, set_constraint!,
-                            FixedCell, energy
-using ASE: ASEAtoms
+    using JuLIP: Atoms, mat, get_positions, set_positions!, set_calculator!, set_constraint!,
+                                FixedCell, energy
+    using ASE: ASEAtoms
 
-include("ManAtoms.jl")
+    include("ManAtoms.jl")
 
-export potential_energy, idealbrittlesolid, calc_matscipy_ibs, plot_potential
+    export potential_energy, idealbrittlesolid, calc_matscipy_ibs, plot_potential
 
-"""
-`potential_energy(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)`
+    """
+    `potential_energy(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)`
 
-Assumes atoms object is a dimer
+    Assumes atoms object is a dimer
 
-### Arguments
-- atoms::Atoms
-- potential
-- r_a : initial seperation distance
-- r_b : final separation distance
-- points : number of points inbetween initial and final distances
+    ### Arguments
+    - atoms::Atoms
+    - potential
+    - r_a : initial seperation distance
+    - r_b : final separation distance
+    - points : number of points inbetween initial and final distances
 
-### Other methods
-`potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)`
+    ### Other methods
+    `potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)`
 
-- cell_size : size of the box in which the atoms exist in
+    - cell_size : size of the box in which the atoms exist in
 
-### Returns
-- r : separation array
-- potential_energies : energies array
-"""
-function potential_energy(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)
+    ### Returns
+    - r : separation array
+    - potential_energies : energies array
+    """
+    function potential_energy(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)
 
-    calc = potential
-    set_calculator!(atoms, calc)
-    set_constraint!(atoms, FixedCell(atoms))
+        calc = potential
+        set_calculator!(atoms, calc)
+        set_constraint!(atoms, FixedCell(atoms))
 
-    r = linspace(r_a, r_b, points)
-    potential_energies = Array{Float64}(points)
-    positions = mat(get_positions(atoms))
-    for i in 1:points
-        seperation = r[i]
-        positions[1,1] = -seperation/2.0
-        positions[1,2] = +seperation/2.0
-        set_positions!(atoms, positions)
-        potential_energies[i] = energy(atoms)
-    end    
+        r = linspace(r_a, r_b, points)
+        potential_energies = Array{Float64}(points)
+        positions = mat(get_positions(atoms))
+        for i in 1:points
+            seperation = r[i]
+            positions[1,1] = -seperation/2.0
+            positions[1,2] = +seperation/2.0
+            set_positions!(atoms, positions)
+            potential_energies[i] = energy(atoms)
+        end    
 
-    return r, potential_energies
-end
+        return r, potential_energies
+    end
 
-function potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)    
-    atoms = dimer("H", cell_size = cell_size)
-    return potential_energy(atoms, potential; r_a = r_a, r_b = r_b, points = points)
-end
+    function potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)    
+        atoms = dimer("H", cell_size = cell_size)
+        return potential_energy(atoms, potential; r_a = r_a, r_b = r_b, points = points)
+    end
 
 
 # old section
