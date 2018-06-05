@@ -14,7 +14,7 @@ using ASE
 
     include("ManAtoms.jl")
 
-    export potential_energy, potential_forces
+    export potential_energy, potential_forces,
                 idealbrittlesolid, calc_matscipy_ibs, plot_potential
 
     """
