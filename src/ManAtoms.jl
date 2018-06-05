@@ -3,27 +3,27 @@
 
 module ManAtoms
 
-using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
-using ASE: ASEAtoms
+    using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
+    using ASE: ASEAtoms
 
-export seperation, dimer, atoms_subsystem
+    export seperation, dimer, atoms_subsystem
 
 
-# there is not much need for this function!
-# especially since it just returns the norm distance between pair of vectors
-"""
-    seperation(object, indices)
+    # there is not much need for this function!
+    # especially since it just returns the norm distance between pair of vectors
+    """
+        seperation(object, indices)
 
-Returns norm distance between pair of positions.
+    Returns norm distance between pair of positions.
 
-### Usage
-- `seperation(atoms, [1 , 2])`
-- `seperation(pos_crystal + u, [1 , 2])`
-### Arguments
-- `object::AbstractAtoms` or `object::JVecs{Float64}`: atoms object or positions
-- `indices`: pair of atom indices
-"""
-seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
+    ### Usage
+    - `seperation(atoms, [1 , 2])`
+    - `seperation(pos_crystal + u, [1 , 2])`
+    ### Arguments
+    - `object::AbstractAtoms` or `object::JVecs{Float64}`: atoms object or positions
+    - `indices`: pair of atom indices
+    """
+    seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
 
     """
     `dimer(element = "H"; seperation = 1.0, cell_size = 30.0)`
@@ -51,60 +51,59 @@ seperation(object, indices) = norm(object[indices[1]] - object[indices[2]])
         return atoms
     end
 
+    """
+        `atoms_subsystem(atoms, indices)`
 
-"""
-    `atoms_subsystem(atoms, indices)`
+    Returns a new atoms object, of given indices, carved out of the given atoms object.
+    Not super efficient memory wise!
 
-Returns a new atoms object, of given indices, carved out of the given atoms object.
-Not super efficient memory wise!
+    ### Arguments
+    - `atoms::AbstractAtoms`: atoms object
+    - `indices`: list of atom indices
+    """
+    function atoms_subsystem(atoms::ASEAtoms, indices)
 
-### Arguments
-- `atoms::AbstractAtoms`: atoms object
-- `indices`: list of atom indices
-"""
-function atoms_subsystem(atoms::ASEAtoms, indices)
+        # copy and cut out rest of system
+        atoms_sub = deepcopy(atoms)
+        indices_inverse = setdiff(1:length(atoms), indices)
+        indices_inverse_py = indices_inverse .- 1
+        delete!(atoms_sub.po, indices_inverse_py)
 
-    # copy and cut out rest of system
-    atoms_sub = deepcopy(atoms)
-    indices_inverse = setdiff(1:length(atoms), indices)
-    indices_inverse_py = indices_inverse .- 1
-    delete!(atoms_sub.po, indices_inverse_py)
+        return atoms_sub
+    end
 
-    return atoms_sub
-end
+    """
+        `do_w_mod_pos(some_function::Function, atoms::AbstractAtoms, pos)`
 
-"""
-    `do_w_mod_pos(some_function::Function, atoms::AbstractAtoms, pos)`
+    "Do with modified positions"
+    Returns the given function's output given an atoms object and its modified positions
 
-"Do with modified positions"
-Returns the given function's output given an atoms object and its modified positions
+    ### Usage
+    - `do_w_mod_pos(forces, atoms, pos + u)`
 
-### Usage
-- `do_w_mod_pos(forces, atoms, pos + u)`
+    ### Arguments
+    - `do_function::Function`: some function that takes an atoms object
+    - `atoms::AbstractAtoms`: atoms object
+    - `pos`: positions
 
-### Arguments
-- `do_function::Function`: some function that takes an atoms object
-- `atoms::AbstractAtoms`: atoms object
-- `pos`: positions
+    TODO:
+    - have arguments for the function
+    - pass multiple functions to modify atoms and then get propery
+        - ie have a overall do_mod_atoms function?
+    - macro may help?
+    """
+    function do_w_mod_pos(do_function::Function, atoms::AbstractAtoms, pos)
+        # save and set modified positions
+        pos_original = get_positions(atoms)
+        set_positions!(atoms, pos)
 
-TODO:
-- have arguments for the function
-- pass multiple functions to modify atoms and then get propery
-    - ie have a overall do_mod_atoms function?
-- macro may help?
-"""
-function do_w_mod_pos(do_function::Function, atoms::AbstractAtoms, pos)
-    # save and set modified positions
-    pos_original = get_positions(atoms)
-    set_positions!(atoms, pos)
+        fun_output = do_function(atoms)
 
-    fun_output = do_function(atoms)
+        # revert to initial positions
+        set_positions!(atoms, pos_original)
 
-    # revert to initial positions
-    set_positions!(atoms, pos_original)
-
-    return fun_output
-end
+        return fun_output
+    end
 
 # Old code left for reference and eventually clean up
 
