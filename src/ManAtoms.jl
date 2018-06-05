@@ -6,7 +6,7 @@ module ManAtoms
     using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
     using ASE: ASEAtoms
 
-    using JuLIP: JVecF, Atoms, get_positions
+    using JuLIP: JVecF, Atoms, get_positions, mat 
 
     export seperation, dimer, atoms_subsystem
 
