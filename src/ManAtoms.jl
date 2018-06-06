@@ -3,10 +3,11 @@
 
 module ManAtoms
 
-    using JuLIP: JVecs, AbstractAtoms, get_positions, set_positions!, positions, Atoms
+    using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!
     using ASE: ASEAtoms
-
-    using JuLIP: JVecF, Atoms, get_positions, mat 
+    using ConstrainedOptim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize
+    using Optim: Options
+    using ForwardDiff #using ForwardDiff: hessian
 
     export seperation, dimer, atoms_subsystem, pair_constrained_minimise!
 
@@ -71,12 +72,12 @@ module ManAtoms
         atoms = Atoms(ASEAtoms(a_string))
         set_cell!(atoms, cell_size*eye(3))
         set_pbc!(atoms, true)
-        positions = mat(get_positions(atoms))
+        pos = mat(get_positions(atoms))
     
-        positions[1,1] += -seperation/2
-        positions[1,2] += +seperation/2
+        pos[1,1] += -seperation/2
+        pos[1,2] += +seperation/2
     
-        set_positions!(atoms, positions)
+        set_positions!(atoms, pos)
     
         return atoms
     end
@@ -88,7 +89,7 @@ module ManAtoms
     Not super efficient memory wise!
 
     ### Arguments
-    - `atoms::AbstractAtoms`: atoms object
+    - `atoms `: atoms object
     - `indices`: list of atom indices
     """
     function atoms_subsystem(atoms::ASEAtoms, indices)
@@ -187,7 +188,7 @@ module ManAtoms
     end
 
     """
-        `do_w_mod_pos(some_function::Function, atoms::AbstractAtoms, pos)`
+        `do_w_mod_pos(some_function::Function, atoms::Atoms, pos)`
 
     "Do with modified positions"
     Returns the given function's output given an atoms object and its modified positions
@@ -197,7 +198,7 @@ module ManAtoms
 
     ### Arguments
     - `do_function::Function`: some function that takes an atoms object
-    - `atoms::AbstractAtoms`: atoms object
+    - `atoms::Atoms`: atoms object
     - `pos`: positions
 
     TODO:
@@ -206,7 +207,7 @@ module ManAtoms
         - ie have a overall do_mod_atoms function?
     - macro may help?
     """
-    function do_w_mod_pos(do_function::Function, atoms::AbstractAtoms, pos)
+    function do_w_mod_pos(do_function::Function, atoms::Atoms, pos)
         # save and set modified positions
         pos_original = get_positions(atoms)
         set_positions!(atoms, pos)
@@ -288,10 +289,10 @@ function triangular_lattice_slab(a, N_x, N_y, ; shift_to_centre = false)
     atoms = ASEAtoms(ibs.triangular_lattice_slab(a, N_x, N_y))
 
     if shift_to_centre == true
-      positions = mat(get_positions(atoms))
+      pos = mat(get_positions(atoms))
       # mid_point in height between pair is 0.5 ( a0 * cos(pi/6) )
-      positions[2,:] += a*sqrt(3)/4
-      set_positions!(atoms, positions)
+      pos[2,:] += a*sqrt(3)/4
+      set_positions!(atoms, pos)
     end
 
     return atoms
@@ -340,8 +341,8 @@ function calc_radial_positions_xy(atoms, point)
     tip_x = point[1]
     tip_y = point[2]
 
-    x = mat(positions(atoms))[1, :]
-    y = mat(positions(atoms))[2, :]
+    x = mat(get_positions(atoms))[1, :]
+    y = mat(get_positions(atoms))[2, :]
     xp, yp = x - tip_x, y - tip_y
     r = sqrt(xp.^2 + yp.^2)
     t = atan2(yp, xp)
@@ -400,9 +401,9 @@ end
 
 function get_seperation(atoms, index_1, index_2)
 
-    positions = mat(get_positions(atoms))
-    pos_i1 = positions[:,index_1]
-    pos_i2 = positions[:,index_2]
+    pos = mat(get_positions(atoms))
+    pos_i1 = pos[:,index_1]
+    pos_i2 = pos[:,index_2]
     seperation = sqrt((pos_i1[1]-pos_i2[1])^2 + (pos_i1[2]-pos_i2[2])^2 + (pos_i1[3]-pos_i2[3])^2)
 
     return seperation
@@ -410,11 +411,11 @@ end
 
 function get_size(atoms)
 
-    positions = mat(get_positions(atoms))
+    pos = mat(get_positions(atoms))
 
-    x_length = maximum(positions[1,:]) - minimum(positions[1,:])
-    y_length = maximum(positions[2,:]) - minimum(positions[2,:])
-    z_length = maximum(positions[3,:]) - minimum(positions[3,:])
+    x_length = maximum(pos[1,:]) - minimum(pos[1,:])
+    y_length = maximum(pos[2,:]) - minimum(pos[2,:])
+    z_length = maximum(pos[3,:]) - minimum(pos[3,:])
 
     return [x_length, y_length, z_length]
 end
@@ -479,7 +480,7 @@ function setup_crack(atoms_bulk, tip, k1, k1g, C44, nu)
     atoms_crack = deepcopy(atoms_bulk)
     r, t = calc_radial_positions_xy(atoms_crack, tip)
     u, v = crack.isotropic_modeI_crack_tip_displacement_field(k1*k1g, C44, nu, r, t)
-    positions_temp = (mat(positions(atoms_crack)))
+    positions_temp = (mat(get_positions(atoms_crack)))
     positions_temp[1,:] = positions_temp[1,:] + u
     positions_temp[2,:] = positions_temp[2,:] + v
     set_positions!(atoms_crack, positions_temp)
@@ -531,7 +532,7 @@ function plot_atoms(atoms, ; colour="b", indices=nothing, scale=.1, cell=false)
         indices = linearindices(atoms)
     end
 
-    p = mat(positions(atoms))
+    p = mat(get_positions(atoms))
     scatter(p[1,indices], p[2,indices], c=colour, s=scale)
 
     axis(:equal)
