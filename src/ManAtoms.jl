@@ -8,7 +8,7 @@ module ManAtoms
 
     using JuLIP: JVecF, Atoms, get_positions, mat 
 
-    export seperation, dimer, atoms_subsystem
+    export seperation, dimer, atoms_subsystem, pair_constrained_minimise!
 
     """
     `separation(atoms::Atoms, i::Int, j::Int) `
@@ -100,6 +100,90 @@ module ManAtoms
         delete!(atoms_sub.po, indices_inverse_py)
 
         return atoms_sub
+    end
+
+    """
+    `pair_constrained_minimise!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, seperations::Array{Float64}; 
+                                            s_tol = 1e-3, g_tol = 1e-2)`
+
+    Note: Separation distances between atom pairs should initially be satisfied. (Warning is produced)
+
+    ### Arguments
+    - `atoms::Atoms`
+    - `pairs::Array{Tuple{Int, Int}}` : list of atom pairs
+    - `seperations::Array{Float64}` : list of separation distances
+    - `s_tol = 1e-3` : separation tolerance
+    - `g_tol = 1e-2` : gradient tolerance - Optim optimize option https://github.com/JuliaNLSolvers/Optim.jl/blob/master/docs/src/user/config.md
+    """
+    function pair_constrained_minimise!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, seperations::Array{Float64}; 
+                                            s_tol = 1e-3, g_tol = 1e-2)
+        
+        # get associated degrees of freedom for the pairs
+        dofspairs = []
+        dofspairjoined = []
+        for pair in pairs
+            p = atomdofs(atoms, pair[1])
+            q = atomdofs(atoms, pair[2])
+            push!(dofspairs, (p, q))
+            r = copy(p)
+            append!(r, q)
+            push!(dofspairjoined, r)
+        end
+
+        # separation between atoms
+        slen(x, Ip, Iq) = norm(x[Iq] - x[Ip])
+
+        # energy, gradient and hessian for the interatomic potential
+        ener(x) = energy(atoms, x)
+        gradient!(g, x) = (g[:] = gradient(atoms, x); g)
+        hessian!(h, x) = (h[:,:] = hessian(atoms, x); h)
+
+        # constraint function
+        function con_c!(c, x) 
+            for i in 1:length(dofspairs)
+                c[i] = slen(x, dofspairs[i][1], dofspairs[i][2]) - seperations[i]
+            end
+            return c
+        end
+
+        # Jacobian of constraint, shape [1, length(x)]
+        function con_jacobian!(j, x)
+            j[1,:] = 0.0
+            for i in 1:length(dofspairs)   
+                pair_len = slen(x, dofspairs[i][1], dofspairs[i][2])
+                j[1,dofspairs[i][1]] = (x[dofspairs[i][1]]-x[dofspairs[i][2]])/pair_len
+                j[1,dofspairs[i][2]] = (x[dofspairs[i][2]]-x[dofspairs[i][1]])/pair_len
+            end
+            return j
+        end
+
+        function con_h!(h, x, λ)
+            for i in 1:length(dofspairjoined)
+                p = length(dofspairs[i][1])
+                q = length(dofspairs[i][2])
+                _i1 = 1:p
+                _i2 = p+1:p+q
+                _cf(x) = norm(x[_i2] - x[_i1]) - seperations[i]
+                h[dofspairjoined[i], dofspairjoined[i]] += 
+                                            λ[1] *ForwardDiff.hessian(_cf, x[dofspairjoined[i]])
+            end
+            return h
+        end
+
+        x = dofs(atoms)
+        df = TwiceDifferentiable(ener, gradient!, hessian!, x)
+        lx = Float64[]; ux = Float64[]
+        lc = fill(-s_tol, length(pairs)); uc = fill(s_tol, length(pairs))
+        dfc = TwiceDifferentiableConstraints(con_c!, con_jacobian!, con_h!,
+                                            lx, ux, lc, uc)
+
+        res = optimize(df, dfc, x, IPNewton(show_linesearch=false, μ0=:auto), 
+                        Options(show_trace = true, extended_trace = false,
+                                        allow_f_increases = true, successive_f_tol = 2,
+                                        g_tol = g_tol))
+        set_dofs!(atoms, res.minimizer)
+
+        return res
     end
 
     """
