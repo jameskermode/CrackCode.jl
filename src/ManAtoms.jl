@@ -188,6 +188,23 @@ module ManAtoms
     end
 
     """
+    `mask_atom!(mask::Array{Bool,2}, index::Int) `
+    `mask_atom!(mask::Array{Bool,2}, indices::Array{Int,1})`
+
+    Returns the given mask, with the given indices of atoms masked out, ie equal to 0
+    """
+    function mask_atom!(mask::Array{Bool,2}, index::Int) 
+        mask[:, index] = 0
+        return mask
+    end
+    function mask_atom!(mask::Array{Bool,2}, indices::Array{Int,1})
+        for i in 1:length(indices)
+            mask[:, indices[i]] = 0
+        end
+        return mask
+    end
+
+    """
         `do_w_mod_pos(some_function::Function, atoms::Atoms, pos)`
 
     "Do with modified positions"
