@@ -9,7 +9,7 @@ module ManAtoms
     using Optim: Options
     using ForwardDiff #using ForwardDiff: hessian
 
-    export seperation, dimer, atoms_subsystem, mask_atom!, pair_constrained_minimise!
+    export seperation, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!
 
     """
     `separation(atoms::Atoms, i::Int, j::Int) `
@@ -101,6 +101,74 @@ module ManAtoms
         delete!(atoms_sub.po, indices_inverse_py)
 
         return atoms_sub
+    end
+
+    """
+    `move_atom_pair!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, separations::Array{Float64})`
+
+    Manually move atom pairs to satisfy given separations. Default tries to move them evenly.
+    Note: Order of pair list matters for recurring indices. 
+    First occurrence will be moved evenly, second occurrence will not.
+    
+    ### Agruments
+    - `atoms::Atoms``
+    - `pairs::Array{Tuple{Int, Int}}` : list of atom pairs
+    - `separations::Array{Float64}` : list of separations
+    
+    ### Other Usage
+    `move_atom_pair!(atoms::Atoms, pair::Tuple{Int, Int}, seperation::Float64; i_s = 0.5, j_s = 0.5)`
+    - `i_s = 0.5` : amount to scale atom 1 position 
+    - `j_s = 0.5` : amount to scale atom 2 position 
+    """
+    # manually move atom pair to satisfy given seperation
+    function move_atom_pair!(pos::Array{JVecF}, i::Int, j::Int, seperation::Float64; i_s = 0.5, j_s = 0.5)
+        u = pos[j] - pos[i]
+        v = 1.0 - seperation / norm(u)
+        pos[i] += i_s * v * u
+        pos[j] -= j_s * v * u
+        return pos
+    end
+    move_atom_pair!(pos::Array{JVecF}, pair::Tuple{Int, Int}, seperation::Float64; i_s = 0.5, j_s = 0.5) = 
+                                                                move_atom_pair!(pos, pair[1], pair[2], seperation, i_s = i_s, j_s = j_s)   
+    function move_atom_pair!(atoms::Atoms, i::Int, j::Int, seperation::Float64; i_s = 0.5, j_s = 0.5)
+        pos = get_positions(atoms)
+        pos = move_atom_pair!(pos, i, j, seperation, i_s = i_s, j_s = j_s)
+        set_positions!(atoms, pos)
+        return atoms
+    end
+    move_atom_pair!(atoms::Atoms, pair::Tuple{Int, Int}, seperation::Float64; i_s = 0.5, j_s = 0.5) = 
+                                                            move_atom_pair!(atoms, pair[1], pair[2], seperation, i_s = i_s, j_s = j_s)
+    
+    # atoms and array of pairs and separations    
+    function move_atom_pair!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, separations::Array{Float64})
+        
+        i_s = 0.0 
+        j_s = 0.0
+        
+        pos = get_positions(atoms)
+        indices_moved = []
+        for i in 1:length(pairs)
+            m_1 = findin(indices_moved, pairs[i][1])
+            m_2 = findin(indices_moved, pairs[i][2])
+    
+            if length(m_1) == 0 && length(m_2) == 0 i_s = 0.5; j_s = 0.5 end
+            if length(m_1) >= 1 i_s = 0.0; j_s = 1.0 end
+            if length(m_2) >= 1 i_s = 1.0; j_s = 0.0 end
+    
+            # they are done so skip
+            if length(m_1) >= 1 && length(m_2) >= 1
+                warn("Both atoms, ", pairs[i], ", have already been moved - can not satisfy seperation")
+                continue
+            end
+    
+            pos = move_atom_pair!(pos, pairs[i], separations[i], i_s = i_s, j_s = j_s)
+    
+            # add to done list
+            push!(indices_moved, pairs[i][1])
+            push!(indices_moved, pairs[i][2])
+        end
+        set_positions!(atoms, pos)
+        return atoms
     end
 
     """
