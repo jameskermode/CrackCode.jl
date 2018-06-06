@@ -9,7 +9,7 @@ module ManAtoms
     using Optim: Options
     using ForwardDiff #using ForwardDiff: hessian
 
-    export seperation, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!
+    export seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!
 
     """
     `separation(atoms::Atoms, i::Int, j::Int) `
