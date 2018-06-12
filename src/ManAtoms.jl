@@ -3,13 +3,14 @@
 
 module ManAtoms
 
-    using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!
+    using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!, get_cell
     using ASE: ASEAtoms
     using ConstrainedOptim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize
     using Optim: Options
     using ForwardDiff #using ForwardDiff: hessian
 
-    export seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!
+    export seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,
+                radial_indices, generate_system, generate_radial_system
 
     """
     `separation(atoms::Atoms, i::Int, j::Int) `
@@ -294,6 +295,65 @@ module ManAtoms
     end
     radial_indices(atoms::Atoms, radius::Float64, point::Array{JVecF}; region = "inside") = 
                         radial_indices(get_positions(atoms), radius, point ; region = region)
+
+
+    """
+    `generate_system(atoms::Atoms, systemsize::Array{Float64,1})`
+
+    Generate a system using given atoms object, ie tile the atoms object to match dimensions given in `systemsize`
+
+    If a dimension in `systemsize` is smaller than within given atoms object, that dimension will default to that original length.
+
+    ### Arguments
+    - `atoms::Atoms` 
+    - `systemsize::Array{Float64,1}` : lengths of x, y, z in Angstroms, eg [40.0, 25.0, 10.0]
+    """
+    function generate_system(atoms::Atoms, systemsize::Array{Float64,1})
+
+        # number of unit cells to tile
+        atoms_cell = get_cell(atoms)
+        
+        n = zeros(3)
+        for i in 1:3
+            n[i] = systemsize[i] / norm(get_cell(atoms)[i,:])
+            if n[i] < 1.0
+                warn("dimension ", i, ", of systemsize ", systemsize[i], 
+                            ", is smaller than the unit cell, defaults to unit cell length")
+            end
+        end       
+        atoms_s = deepcopy(atoms)*(Int.(ceil.(n)))
+        print("Produced cell: ", get_cell(atoms_s))
+        
+        return atoms_s
+    end
+
+
+    """
+    `generate_radial_system(atoms::Atoms, radius::Float64; depth = nothing)`
+
+    Generate a radial system using given atoms object, ie tile the atoms object to give given radius and depth
+
+    ### Arguments
+    - `atoms::Atoms` 
+    - `radius::Float64` : 
+    - `depth = nothing` : defaults to use 1 unit cell length, ie original z length of given atoms object
+    """
+    function generate_radial_system(atoms::Atoms, radius::Float64; depth = nothing)
+        
+        # if no depth given, use 1 unit cell as depth
+        if depth == nothing
+            depth = norm(get_cell(atoms)[3,:])
+        end 
+        
+        systemsize = [radius*2, radius*2, depth]    
+        atoms_s = generate_system(atoms, systemsize)
+        
+        centre_point = [diag(get_cell(atoms_s))/2.0]
+        ir_out = radial_indices(atoms_s, radius, centre_point; region = "outside")
+        deleteat!(atoms_s, ir_out)
+        
+        return atoms_s
+    end
 
 
     """
