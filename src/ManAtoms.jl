@@ -272,6 +272,30 @@ module ManAtoms
         return mask
     end
 
+    
+    """
+    `radial_indices(pos::Array{JVecF}, radius::Float64, point::JVecF; region = "inside")`
+
+    `radial_indices(atoms::Atoms, radius::Float64, point::JVecF; region = "inside")`
+
+    ### Arguments
+    - pos::Array{JVecF} 
+    - radius::Float64
+    - point::Array{JVecF} : centre of radius
+    - region = "inside" : "inside" <= r, "outside" > r
+    """
+    function radial_indices(pos::Array{JVecF}, radius::Float64, point::Array{JVecF}; region = "inside")
+
+        ir = []
+        if region == "inside" ir = find(norm.(pos .- point)  .<= radius) end
+        if region == "outside" ir = find(norm.(pos .- point)  .> radius)end
+        
+        return ir
+    end
+    radial_indices(atoms::Atoms, radius::Float64, point::Array{JVecF}; region = "inside") = 
+                        radial_indices(get_positions(atoms), radius, point ; region = region)
+
+
     """
         `do_w_mod_pos(some_function::Function, atoms::Atoms, pos)`
 
