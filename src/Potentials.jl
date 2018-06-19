@@ -18,83 +18,79 @@ using ASE
                 idealbrittlesolid, calc_matscipy_ibs, plot_potential
 
     """
-    `potential_energy(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)`
+    `potential_energy(atoms::Atoms, potential, r::Array{Float64})`
 
-    Assumes atoms object is a dimer
+    Calculate the potential energies of given seperation distances. 
+    Assumes atoms object is a dimer. Seperation distances are along the x direction.
 
     ### Arguments
     - atoms::Atoms
     - potential
-    - r_a : initial seperation distance
-    - r_b : final separation distance
-    - points : number of points inbetween initial and final distances
+    - r::Array{Float64} : seperation distances
 
     ### Other methods
-    `potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)`
+    `potential_energy(potential, r::Array{Float64}; cell_size = 30.0)`
 
     - cell_size : size of the box in which the atoms exist in
 
     ### Returns
-    - r : separation array
     - potential_energies : energies array
     """
-    function potential_energy(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)
-
+    function potential_energy(atoms::Atoms, potential, r::Array{Float64})
+    
         calc = potential
         set_calculator!(atoms, calc)
         set_constraint!(atoms, FixedCell(atoms))
-
-        r = linspace(r_a, r_b, points)
-        potential_energies = Array{Float64}(points)
+    
+        potential_energies = Array{Float64}(length(r))
         positions = mat(get_positions(atoms))
-        for i in 1:points
+        for i in 1:length(r)
             seperation = r[i]
             positions[1,1] = -seperation/2.0
             positions[1,2] = +seperation/2.0
             set_positions!(atoms, positions)
             potential_energies[i] = energy(atoms)
         end    
-
-        return r, potential_energies
+    
+        return potential_energies
     end
 
-    function potential_energy(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)    
+    function potential_energy(potential, r::Array{Float64}; cell_size = 30.0) 
         atoms = ManAtoms.dimer("H", cell_size = cell_size)
-        return potential_energy(atoms, potential; r_a = r_a, r_b = r_b, points = points)
+        return potential_energy(atoms, potential, r)
     end
 
     """
-    `potential_forces(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)`
+    `potential_forces(atoms::Atoms, potential, r::Array{Float64})`
 
-    Assumes atoms object is a dimer. Returns array of the x component of forces on each atom.
+    Calculate the forces of given seperation distances. 
+    Assumes atoms object is a dimer. Seperation distances are along the x direction.
+    Returns array of the x component of forces on each atom.
+    
 
     ### Arguments
     - atoms::Atoms
     - potential
-    - r_a : initial seperation distance
-    - r_b : final separation distance
-    - points : number of points inbetween initial and final distances
+    - r::Array{Float64} : seperation distances
 
     ### Other methods
-    `potential_forces(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)`
+    `potential_forces(potential, r::Array{Float64}; cell_size = 30.0)`
 
     - cell_size : size of the box in which the atoms exist in
 
     ### Returns
-    - r : separation array
     - forces_a1 : force_x array on atom 1
     - forces_a2 : force_x array on atom 2
     """
-    function potential_forces(atoms::Atoms, potential; r_a = 0.4, r_b = 2.5, points = 100)
+    function potential_forces(atoms::Atoms, potential, r::Array{Float64})
 
         calc = potential
         set_calculator!(atoms, calc)
         set_constraint!(atoms, FixedCell(atoms))
     
-        r = linspace(r_a, r_b, points)
-        forces_a1 = Array{Float64}(points); forces_a2 = Array{Float64}(points)
+        forces_a1 = Array{Float64}(length(r)); forces_a2 = Array{Float64}(length(r))
         positions = mat(get_positions(atoms))
-        for i in 1:points
+        for i in 1:length(r)
             seperation = r[i]
             positions[1,1] = -seperation/2.0
             positions[1,2] = +seperation/2.0
@@ -103,12 +99,12 @@ using ASE
             forces_a2[i] = forces(atoms)[2][1] 
         end    
     
-        return r, forces_a1, forces_a2 
+        return forces_a1, forces_a2 
     end
 
-    function potential_forces(potential; r_a = 0.4, r_b = 2.5, points = 100, cell_size = 30.0)
+    function potential_forces(potential, r::Array{Float64}; cell_size = 30.0)
         atoms = ManAtoms.dimer("H", cell_size = cell_size)
-        return potential_forces(atoms, potential; r_a = r_a, r_b = r_b, points = points)
+        return potential_forces(atoms, potential, r)
     end
 
 
