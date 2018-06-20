@@ -177,7 +177,7 @@ Also returns `across_crack` list of bonds pairs that were removed.
 # generic and easy to remember but now one line of code, bit pointless
 function filter_crack_bonds(atoms::AbstractAtoms, bonds_list, crack_tip)
 
-    across_crack = []
+    across_crack = Array{Tuple{Int, Int}}(0)
     for b in bonds_list
         i = b[1]
         j = b[2]
