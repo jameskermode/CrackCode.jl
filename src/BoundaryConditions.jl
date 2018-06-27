@@ -10,7 +10,7 @@ module BoundaryConditions
 #using JuLIP
 #using PyCall
 
-using JuLIP: AbstractAtoms, mat, vecs, set_pbc!, get_pbc, get_positions, set_positions!, get_cell, set_cell!,
+using JuLIP: JVecF, Atoms, AbstractAtoms, mat, vecs, set_pbc!, get_pbc, get_positions, set_positions!, get_cell, set_cell!,
                 cutoff
 using NeighbourLists: PairList
 #using ASE.MatSciPy: NeighbourList
@@ -340,9 +340,9 @@ where the formula for ``κ `` is the one for plane strain
 (plane stress is different), ``nu`` is Poisson ratio and
 E is the Youngs Modulus
 """
-function u_cle(atoms, tip, K, E, nu)
+function u_cle(pos::Array{JVecF}, tip, K, E, nu)
 
-    pos = mat(get_positions(atoms) .- tip)
+    pos = mat(pos)
 
     x = pos[1,:]
     y = pos[2,:]
@@ -358,6 +358,7 @@ function u_cle(atoms, tip, K, E, nu)
 
     return vecs([ux'; uy'; uz'])
 end
+u_cle(atoms::Atoms, tip, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
 
 """
     fix_neighbourlist(atoms, bonds_list)
