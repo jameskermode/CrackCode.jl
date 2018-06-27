@@ -342,7 +342,7 @@ E is the Youngs Modulus
 """
 function u_cle(pos::Array{JVecF}, tip, K, E, nu)
 
-    pos = mat(pos)
+    pos = mat(pos .- tip)
 
     x = pos[1,:]
     y = pos[2,:]
