@@ -3,7 +3,49 @@ module BoundaryConditions
     using JuLIP: JVecF, Atoms, set_positions!, get_positions, dofs
     using LsqFit: curve_fit
 
-    export fit_crack_tip_displacements
+    export u_cle, fit_crack_tip_displacements
+
+    """
+    `u_cle(atoms::Atoms, tip, K, E, nu) `
+
+    Displacement field, Continuum Linear Elastic solution. Returns displacements in cartesian coordinates.
+
+    Isotropic crack solution:
+    ``u_x = C √r [ (2*kappa - 1)cos(θ/2) - cos(3θ/2) ]``
+    ``u_y = C √r [ (2*kappa + 1)sin(θ/2) - sin(3θ/2) ]``
+    ``C = K / (2√(2pi)E))*(1+nu)``
+    ``kappa = 3 - 4nu``
+
+    where the formula for `kappa` is the one for plane strain (plane stress is different). `nu` : Poisson ratio and
+    E is the Youngs Modulus.
+    
+    ### Arguments
+    - `atoms::Atoms` or `pos::Array{JVecF}`
+    - tip : JVecF
+    - K : stress intensity factor
+    - E : Youngs modulus
+    - nu : Poisson ratio
+    """
+    function u_cle(pos::Array{JVecF}, tip::Array{JVecF}, K, E, nu)
+
+        pos = mat(pos .- tip)
+        x = pos[1,:]
+        y = pos[2,:]
+
+        kappa = 3 - 4 * nu
+        r = sqrt.(x.^2 + y.^2)
+        θ = angle.(x + im * y)
+        C = (K / (2*√(2*pi)*E))*(1+nu)
+
+        ux = C*sqrt.(r) .* ((2*kappa-1) * cos.(θ/2) - cos.(3*θ/2))
+        uy = C*sqrt.(r) .* ((2*kappa+1) * sin.(θ/2) - sin.(3*θ/2))
+        uz = zeros(length(ux))
+
+        return vecs([ux'; uy'; uz'])
+    end
+    u_cle(atoms::Atoms, tip::Array{JVecF}, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
+
+
 
     """
     `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::Array{JVecF}; mask = [1,1,1], verbose = 0)`
@@ -21,6 +63,7 @@ module BoundaryConditions
     function fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::Array{JVecF}; 
                                                                         mask = [1,1,1], verbose = 0)
         
+        # function which gives new displacements based on a new tip
         function model(x, p) 
                 
             # map p into an all 3 dimensions array, then add to initial guess of tip
@@ -57,6 +100,7 @@ module BoundaryConditions
         if dim == 3 p0 = [0.0, 0.0, 0.0] end
         
         # LsqFit.curve_fit
+        # model = function which gives new displacements based on a new tip
         # xdata = zeros(similar(dofs_u)), doesn't really matter, just need a vector of the same length
         # ydata = dofs_u, final positions to match
         fit = curve_fit(model, zeros(similar(dofs_u)), dofs_u, p0)
@@ -465,7 +509,7 @@ end
 Calculate the corrected displacements, from solving H \ f.
 # Returns
 - `u_c`: corrected displacements
-# Arguements:
+# Arguments:
 - `u`: initial displacements
 - `H`: hessian
 - `f`: forces
@@ -491,11 +535,11 @@ Able to perform multiple hessian correction steps
 
 # Returns
 - `u_step`: corrected displacements
-# Arguements:
+# Arguments:
 - `atoms`: atoms object
 - `u`: initial displacements (Cartesian)
 - `Idof`: degrees of freedom #Fix this: not ideal to have cartensian and dof vector
-## Optional Arguements:
+## Optional Arguments:
 - `H = nothing`: provide hessian, defaults to calculating hessian of atoms object
 - `steps = 1`: number of hessian correction steps to compute
 """
@@ -530,7 +574,7 @@ end
 Minimise atoms and return relaxed displacements, u_r.
 # Returns
 - `u_r`: relaxed displacements
-# Arguements
+# Arguments
 - `atoms`: AbstractAtoms object
 - `u`: intial displacements
 - `constraints`: for minimisation
@@ -563,7 +607,7 @@ u_solution is the displacements from crystal positions such that, the free atoms
 Returns seperation of pair of atoms.
 # Returns
 - `u_sol`: corrected and relaxed displacements
-# Arguements
+# Arguments
 - `atoms`: AbstractAtoms object
 - `u_inital`: intial displacements for hessian correction
 - `Idof`: degreess of freedom for hessian correction
