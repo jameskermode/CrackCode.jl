@@ -16,8 +16,7 @@ module BoundaryConditions
     ``C = K / (2√(2pi)E))*(1+nu)``
     ``kappa = 3 - 4nu``
 
-    where the formula for `kappa` is the one for plane strain (plane stress is different). `nu` : Poisson ratio and
-    E is the Youngs Modulus.
+    where the formula for `kappa` is the one for plane strain (plane stress is different).
     
     ### Arguments
     - `atoms::Atoms` or `pos::Array{JVecF}`
@@ -44,8 +43,6 @@ module BoundaryConditions
         return vecs([ux'; uy'; uz'])
     end
     u_cle(atoms::Atoms, tip::JVecF, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
-
-
 
     """
     `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::JVecF; mask = [1,1,1], verbose = 0)`
