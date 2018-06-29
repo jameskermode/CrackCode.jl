@@ -1,6 +1,81 @@
 module BoundaryConditions
 
+    using JuLIP: JVecF, Atoms, set_positions!, get_positions, dofs
+    using LsqFit: curve_fit
 
+    export fit_crack_tip_displacements
+
+    """
+    `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::Array{JVecF}; mask = [1,1,1], verbose = 0)`
+
+    Fit a crack tip using displacements from `Crackcode.BoundaryConditions.u_cle` using a least square method.
+    Return the fitted crack tip.
+    
+    ### Arguments
+    - `atoms::Atoms`
+    - `atoms_dict` : should contain :pos_cryst, :K, :E and :nu
+    - `tip_g::Array{JuLIP.JVecF}` : inital guess for tip position
+    - `mask = [1,1,1]` : mask which dimensions, [x,y,z], to fit in/vary  
+    - `verbose = 0` : `verbose = 1` returns fitted tip and (`LsqFit.curve_fit`) fit object 
+    """
+    function fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::Array{JVecF}; 
+                                                                        mask = [1,1,1], verbose = 0)
+        
+        function model(x, p) 
+                
+            # map p into an all 3 dimensions array, then add to initial guess of tip
+            pm = Float64.(mask)
+            pm[find(mask .== 1)] = p # where the p values should exist if a full dimension array
+            tip_p = tip_g + [JuLIP.JVecF(pm)]
+
+            # calculate new displacements using new tip
+            set_positions!(atoms, atoms_dict[:pos_cryst]) 
+            u_g = u_cle(atoms, tip_p , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu]) 
+            
+            # convert to vector format
+            dofs_cryst = dofs(atoms)
+            set_positions!(atoms, atoms_dict[:pos_cryst] + u_g)
+            dofs_u_g = dofs(atoms) - dofs_cryst
+
+            return dofs_u_g 
+        end
+        
+        # save original positions
+        pos_orig = get_positions(atoms)
+        
+        # obtain vectors of final positions to fit against
+        dofs_a = dofs(atoms)
+        set_positions!(atoms, atoms_dict[:pos_cryst])
+        dofs_cryst = dofs(atoms)
+        dofs_u = dofs_a - dofs_cryst;
+
+        # initialise p0 depending on mask
+        p0 = []
+        dim = length(find(mask .== 1))
+        if dim == 1 p0 = [0.0] end
+        if dim == 2 p0 = [0.0, 0.0] end
+        if dim == 3 p0 = [0.0, 0.0, 0.0] end
+        
+        # LsqFit.curve_fit
+        # xdata = zeros(similar(dofs_u)), doesn't really matter, just need a vector of the same length
+        # ydata = dofs_u, final positions to match
+        fit = curve_fit(model, zeros(similar(dofs_u)), dofs_u, p0)
+        @printf("fit crack tip using displacements - converged: %s \n", fit.converged)
+        
+        # map p into an all 3 dimensions array, then add to tip for fitted tip 
+        p = fit.param
+        pm = Float64.(mask)
+        pm[find(mask .== 1)] = p # where the p values should exist in a full dimension array
+        tip_f = tip_g + [JuLIP.JVecF(pm)]
+        
+        u_orig = pos_orig - atoms_dict[:pos_cryst]
+        u_fit = u_cle(atoms, tip_f , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu])
+        @printf("max(norm.('given' u positions - u fit)): %.1e \n", maximum(norm.(u_orig - u_fit)))
+        
+        if verbose == 1 return tip_f, fit end
+        return tip_f
+    end
+    
 
 
 
