@@ -348,7 +348,7 @@ module ManAtoms
         systemsize = [radius*2, radius*2, depth]    
         atoms_s = generate_system(atoms, systemsize)
         
-        centre_point = [diag(get_cell(atoms_s))/2.0]
+        centre_point = diag(get_cell(atoms_s))/2.0
         ir_out = radial_indices(atoms_s, radius, centre_point; region = "outside")
         deleteat!(atoms_s, ir_out)
         
