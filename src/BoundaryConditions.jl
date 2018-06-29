@@ -10,7 +10,7 @@ module BoundaryConditions
 
     Fit a crack tip using displacements from `Crackcode.BoundaryConditions.u_cle` using a least square method.
     Return the fitted crack tip.
-    
+
     ### Arguments
     - `atoms::Atoms`
     - `atoms_dict` : should contain :pos_cryst, :K, :E and :nu
@@ -26,7 +26,7 @@ module BoundaryConditions
             # map p into an all 3 dimensions array, then add to initial guess of tip
             pm = Float64.(mask)
             pm[find(mask .== 1)] = p # where the p values should exist if a full dimension array
-            tip_p = tip_g + [JuLIP.JVecF(pm)]
+            tip_p = tip_g + [JVecF(pm)]
 
             # calculate new displacements using new tip
             set_positions!(atoms, atoms_dict[:pos_cryst]) 
@@ -66,7 +66,7 @@ module BoundaryConditions
         p = fit.param
         pm = Float64.(mask)
         pm[find(mask .== 1)] = p # where the p values should exist in a full dimension array
-        tip_f = tip_g + [JuLIP.JVecF(pm)]
+        tip_f = tip_g + [JVecF(pm)]
         
         u_orig = pos_orig - atoms_dict[:pos_cryst]
         u_fit = u_cle(atoms, tip_f , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu])
