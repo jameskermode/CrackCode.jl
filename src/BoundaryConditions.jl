@@ -251,7 +251,6 @@ function crosses_crack(atoms, i::Int, j::Int, tip)
     pos = get_positions(atoms)
     p1 = pos[i]
     p2 = pos[j]
-    tip = tip[1]
 
     crack_bond = false
     # selects left hand side of tip
@@ -331,7 +330,7 @@ Find the bond that is beyond the crack tip
 function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
 
     pos = get_positions(atoms)
-    radial_distances = norm.(pos .- tip)
+    radial_distances = norm.(pos .- [tip])
 
     # all atoms near the current (given) crack tip
     nearby = find( radial_distances .< a0 )
@@ -340,7 +339,7 @@ function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
     distances = zeros(length(nearby))
     pos = get_positions(atoms)
     for i in 1:length(nearby)
-        distances[i] = norm(tip[1] - pos[nearby[i]])
+        distances[i] = norm(tip - pos[nearby[i]])
     end
     index = find(distances .== minimum(distances))
     a1 = nearby[index][1]
