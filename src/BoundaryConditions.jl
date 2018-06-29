@@ -26,9 +26,9 @@ module BoundaryConditions
     - E : Youngs modulus
     - nu : Poisson ratio
     """
-    function u_cle(pos::Array{JVecF}, tip::Array{JVecF}, K, E, nu)
+    function u_cle(pos::Array{JVecF}, tip::JVecF, K, E, nu)
 
-        pos = mat(pos .- tip)
+        pos = mat(pos .- [tip])
         x = pos[1,:]
         y = pos[2,:]
 
@@ -43,12 +43,12 @@ module BoundaryConditions
 
         return vecs([ux'; uy'; uz'])
     end
-    u_cle(atoms::Atoms, tip::Array{JVecF}, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
+    u_cle(atoms::Atoms, tip::JVecF, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
 
 
 
     """
-    `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::Array{JVecF}; mask = [1,1,1], verbose = 0)`
+    `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::JVecF; mask = [1,1,1], verbose = 0)`
 
     Fit a crack tip using displacements from `Crackcode.BoundaryConditions.u_cle` using a least square method.
     Return the fitted crack tip.
@@ -56,11 +56,11 @@ module BoundaryConditions
     ### Arguments
     - `atoms::Atoms`
     - `atoms_dict` : should contain :pos_cryst, :K, :E and :nu
-    - `tip_g::Array{JuLIP.JVecF}` : inital guess for tip position
+    - `tip_g::JVecF` : inital guess for tip position
     - `mask = [1,1,1]` : mask which dimensions, [x,y,z], to fit in/vary  
     - `verbose = 0` : `verbose = 1` returns fitted tip and (`LsqFit.curve_fit`) fit object 
     """
-    function fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::Array{JVecF}; 
+    function fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::JVecF; 
                                                                         mask = [1,1,1], verbose = 0)
         
         # function which gives new displacements based on a new tip
@@ -69,11 +69,11 @@ module BoundaryConditions
             # map p into an all 3 dimensions array, then add to initial guess of tip
             pm = Float64.(mask)
             pm[find(mask .== 1)] = p # where the p values should exist if a full dimension array
-            tip_p = tip_g + [JVecF(pm)]
+            tip_p = tip_g + JVecF(pm)
 
             # calculate new displacements using new tip
             set_positions!(atoms, atoms_dict[:pos_cryst]) 
-            u_g = u_cle(atoms, tip_p , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu]) 
+            u_g = u_cle(atoms, tip_p, atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu]) 
             
             # convert to vector format
             dofs_cryst = dofs(atoms)
@@ -110,7 +110,7 @@ module BoundaryConditions
         p = fit.param
         pm = Float64.(mask)
         pm[find(mask .== 1)] = p # where the p values should exist in a full dimension array
-        tip_f = tip_g + [JVecF(pm)]
+        tip_f = tip_g + JVecF(pm)
         
         u_orig = pos_orig - atoms_dict[:pos_cryst]
         u_fit = u_cle(atoms, tip_f , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu])
