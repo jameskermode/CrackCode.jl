@@ -113,6 +113,9 @@ module BoundaryConditions
         u_fit = u_cle(atoms, tip_f , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu])
         @printf("max(norm.('given' u positions - u fit)): %.1e \n", maximum(norm.(u_orig - u_fit)))
         
+        # restore original atom positions
+        set_positions!(atoms, pos_orig)
+
         if verbose == 1 return tip_f, fit end
         return tip_f
     end
