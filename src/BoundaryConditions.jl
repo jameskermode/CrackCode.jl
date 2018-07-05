@@ -90,11 +90,8 @@ module BoundaryConditions
         dofs_u = dofs_a - dofs_cryst;
 
         # initialise p0 depending on mask
-        p0 = []
         dim = length(find(mask .== 1))
-        if dim == 1 p0 = [0.0] end
-        if dim == 2 p0 = [0.0, 0.0] end
-        if dim == 3 p0 = [0.0, 0.0, 0.0] end
+        p0 = zeros(dim)
         
         # LsqFit.curve_fit
         # model = function which gives new displacements based on a new tip
