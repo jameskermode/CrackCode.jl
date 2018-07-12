@@ -192,7 +192,7 @@ function plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_cra
     # variables: nearby, a1
     # section: from BoundaryConditions.find_next_bond_along()
     pos = get_positions(atoms)
-    radial_distances = norm.(pos .- tip)
+    radial_distances = norm.(pos .- [tip])
 
     # all atoms near the current (given) crack tip
     nearby = find( radial_distances .< a0 )
@@ -201,26 +201,26 @@ function plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_cra
     distances = zeros(length(nearby))
     pos = get_positions(atoms)
     for i in 1:length(nearby)
-        distances[i] = norm(tip[1] - pos[nearby[i]])
+        distances[i] = norm(tip - pos[nearby[i]])
     end
     index = find(distances .== minimum(distances))
     a1 = nearby[index][1]
     # section: end
 
-    scatter(tip[1][1], tip[1][2], color="red", s=8, label="tip")
-    scatter(tip_next[1][1], tip_next[1][2], color="purple", s=8, label="tip next")
+    scatter(tip[1], tip[2], color="red", s=8, label="tip")
+    scatter(tip_next[1], tip_next[2], color="purple", s=8, label="tip next")
 
     plot_atoms(atoms)
 
     plot_atoms(atoms, indices=nearby, colour="blue", scale=5, label="nearby to tip")
-    plot_circle(radius=a0, centre=tip[1], colour="grey", label="nearby radius")
+    plot_circle(radius=a0, centre=tip, colour="grey", label="nearby radius")
 
     plot_atoms(atoms, indices=a1, colour="green", scale=10, label="chosen nearby atom")
 
     plot_bonds(atoms, across_crack, linewidth=0.5, label="across crack")
     plot_bonds(atoms, [across_crack_next], linewidth=2.0, label="next bond")
 
-    axis(box_around_point([tip[1][1], tip[1][2]], [2.5*a0,2.5*a0]))
+    axis(box_around_point([tip[1], tip[2]], [2.5*a0,2.5*a0]))
     title("Visual Check: Next bond along that was chosen")
     legend()
 
