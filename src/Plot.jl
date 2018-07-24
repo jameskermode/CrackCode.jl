@@ -28,7 +28,7 @@ module Plot
         plot_bonds(atoms, next_bond, colour = "g", linewidth=1, label="pair(s): next_bond(s)")
 
         dis = norm(atoms[across_crack_ahead[1][2]] - atoms[across_crack_ahead[1][1]]) # get some distance to only zoom in
-        axis(box_around_point([atoms_dict[:tip][1], atoms_dict[:tip][2]], [2.5*dis,2.5*dis]))
+        axis(box_around_point([tip[1], tip[2]], [2.5*dis,2.5*dis]))
         legend()
     end
 
