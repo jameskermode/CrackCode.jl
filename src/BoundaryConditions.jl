@@ -5,7 +5,8 @@ module BoundaryConditions
     using StaticArrays: SVector
 
 
-    export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types
+    export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
+                intersection_line_plane_types
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -204,6 +205,86 @@ module BoundaryConditions
         return location_point_plane_types(get_positions(atoms), indices, n, point_on_plane)
     end
 
+    """
+    `intersection_line_plane_types(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, n::JVecF, point_on_plane::JVecF)`
+
+    Sorts/describes the line segments, `p_i + u(p_j - pi)`, between given atom pairs into several categories 
+    in relation to the given plane `n_x*x + n_y*y + n_z*z + d = 0`.
+    Returns boolean lists in regards to the original given pairs list.
+
+    ### Example Usage
+    to get list of pairs on the plane => `pairs[pair_types[:side_on_plane]]`
+
+    ### Arguments
+    - `pos::Array{JVecF} or atoms::Atoms`
+    - `pairs::Array{Tuple{Int, Int}}`
+    - `n::JVecF` : normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `point_on_plane::JVecF` : point on the plane, to calculate plane constant `-dot(n, p)`
+
+    ### Returns
+    - `pair_types::Dict` 
+        - `:side_with_normal` : on the side in which the normal is pointing
+        - `:side_on_plane` : on the plane
+        - `:side_inverse_normal` :  on the side in which the sign inverse of the normal is pointing
+        - `:side_crosses_plane` : line segments that cross the plane
+        - `:side_on_plane_with_normal` : p_i or p_j is on the plane and the other is on the side with the normal
+        - `:side_on_plane_inverse_normal` : p_i or p_j is on the plane and the other is on the inverse side of the normal
+    """
+    function intersection_line_plane_types(pos::Array{JVecF}, pairs::Array{Tuple{Int, Int}}, n::JVecF, point_on_plane::JVecF)
+
+        # calculate equation of plane constant
+        d = -dot(n, point_on_plane)
+        
+        # initialise empty boolean arrays
+        empty_b = Array{Bool}(length(pairs))
+        [empty_b[i] = false for i in 1:length(empty_b)]
+        side_wn = copy(empty_b); side_on = copy(empty_b); side_in = copy(empty_b)
+        side_x = copy(empty_b); side_on_wn = copy(empty_b); side_on_in = copy(empty_b)
+
+        for m in 1:length(pairs)
+            p_i = pos[pairs[m][1]]; p_j = pos[pairs[m][2]]
+            # get values from equation of plane and sort
+            ep_i = dot(n, p_i) + d
+            ep_j = dot(n, p_j) + d
+            # get intersection value
+            u = intersection_line_plane_vector_scale(p_i, p_j, n, d)
+
+            # sort into categories
+            if 0.0 < u < 1.0 
+                side_x[m] = true 
+            elseif u == 0.0 || u == 1.0 
+                # need to check positions to seperate which side they are on
+                if ep_i == 0
+                    if ep_j < 0 side_on_in[m] = true
+                    elseif ep_j > 0 side_on_wn[m] = true end
+                elseif ep_j == 0
+                    if ep_i < 0 side_on_in[m] = true
+                    elseif ep_i > 0 side_on_wn[m] = true end
+                end
+            elseif isinf(u) == true  # line does not intersect plane
+                if ep_i > 0 && ep_j > 0 side_wn[m] = true
+                elseif ep_i < 0 && ep_j < 0 side_in[m] = true end
+            elseif isnan(u) == true side_on[m] = true
+            else # line intersects (outside of segment) 
+                if ep_i > 0 && ep_j > 0 side_wn[m] = true
+                elseif ep_i < 0 && ep_j < 0 side_in[m] = true end
+            end
+        end
+
+        pair_types = Dict(
+            :side_with_normal => side_wn,
+            :side_on_plane => side_on,
+            :side_inverse_normal => side_in, 
+            :side_crosses_plane => side_x,
+            :side_on_plane_with_normal => side_on_wn, 
+            :side_on_plane_inverse_normal => side_on_in
+        )
+
+        return pair_types
+    end
+    function intersection_line_plane_types(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, n::JVecF, point_on_plane::JVecF)
+        return intersection_line_plane_types(get_positions(atoms), pairs, n, point_on_plane)
+    end
 
 ### Old code
 
