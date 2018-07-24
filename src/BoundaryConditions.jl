@@ -5,7 +5,7 @@ module BoundaryConditions
     using StaticArrays: SVector
 
 
-    export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale
+    export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -152,6 +152,57 @@ module BoundaryConditions
         return intersection_line_plane_vector_scale(p1, p2, n, -dot(n, p0))
     end
 
+    """
+    `location_point_plane_types(atoms::Atoms, indices::Array{Int}, n::JVecF, point_on_plane::JVecF)`
+
+    Sorts/describes the atoms positions into several categories in relation to the given plane.
+    Returns boolean lists in regards to the original given indices list.
+
+    ### Example Usage
+    to get list of points on the plane => `indices[point_types[:side_on_plane]]`
+
+    ### Arguments
+    - `pos::Array{JVecF} or atoms::Atoms`
+    - `indices::Array{Int}`
+    - `n::JVecF` : normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `point_on_plane::JVecF` : point on the plane, to calculate plane constant `-dot(n, p)`
+
+    ### Returns
+    - `point_types::Dict` 
+        - `:side_with_normal` : on the side in which the normal is pointing
+        - `:side_on_plane` : on the plane
+        - `:side_inverse_normal` :  on the side in which the sign inverse of the normal is pointing
+    """
+    function location_point_plane_types(pos::Array{JVecF}, indices::Array{Int}, n::JVecF, point_on_plane::JVecF)
+
+        # calculate equation of plane constant
+        d = -dot(n, point_on_plane) 
+        
+        # initialise empty boolean arrays
+        empty_b = Array{Bool}(length(indices))
+        [empty_b[i] = false for i in 1:length(empty_b)]
+        side_wn = copy(empty_b); side_on = copy(empty_b); side_in = copy(empty_b)
+
+        # compare value from equation of plane and sort
+        for i in 1:length(indices)
+            ep = dot(n, pos[i]) + d
+            if ep > 0.0 side_wn[i] = true
+            elseif ep == 0.0 side_on[i] = true
+            elseif ep < 0 side_in[i] = true
+            end
+        end
+
+        point_types = Dict(
+            :side_with_normal => side_wn,
+            :side_on_plane => side_on,
+            :side_inverse_normal => side_in, 
+        )
+
+        return point_types
+    end
+    function location_point_plane_types(atoms::Atoms, indices::Array{Int}, n::JVecF, point_on_plane::JVecF)
+        return location_point_plane_types(get_positions(atoms), indices, n, point_on_plane)
+    end
 
 
 ### Old code
