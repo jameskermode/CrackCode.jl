@@ -2,8 +2,10 @@ module BoundaryConditions
 
     using JuLIP: JVecF, Atoms, set_positions!, get_positions, dofs
     using LsqFit: curve_fit
+    using StaticArrays: SVector
 
-    export u_cle, fit_crack_tip_displacements
+
+    export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -117,7 +119,38 @@ module BoundaryConditions
         return tip_f
     end
     
+    """
+    `intersection_line_plane_vector_scale(p1::SVector{3, Float64}, p2::SVector{3, Float64}, 
+    n::SVector{3, Float64}, d::Float64)`
+    
+    `intersection_line_plane_vector_scale(p1::SVector{3, Float64}, p2::SVector{3, Float64}, 
+    n::SVector{3, Float64}, p0::SVector{3, Float64})`
 
+    Check whether line, `p1 + u(p2 - p1)` intersects the plane, `n_x*x + n_y*y + n_z*z + d = 0`.
+    Return scale value, u.
+    If 0 < u < 1 line intersects plane between x1 and x2. 
+    If u = 0, u = 1, line intersects plane on the point x1, x2 respectively.
+    If u is Inf, line does not intersect.
+    If u is NaN, line is on plane.
+    Else line intersects beyond points x1 and x2
+
+    ### Arguments
+    - `p1::SVector{3, Float64}, p2::SVector{3, Float64}` : two points on the line
+    - `n::SVector{3, Float64}` : normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `d::Float64` : plane constant eg `-dot(n, p0)` OR `p0::SVector{3, Float64}` where p0 is a point on the plane
+    """
+    function intersection_line_plane_vector_scale(p1::SVector{3, Float64}, p2::SVector{3, Float64}, 
+                                                            n::SVector{3, Float64}, d::Float64)
+        u_n = dot(n, p1) + d
+        u_d = dot(n, (p1 - p2))
+        u = u_n / u_d
+
+        return u
+    end
+    function intersection_line_plane_vector_scale(p1::SVector{3, Float64}, p2::SVector{3, Float64}, 
+        n::SVector{3, Float64}, p0::SVector{3, Float64})
+        return intersection_line_plane_vector_scale(p1, p2, n, -dot(n, p0))
+    end
 
 
 
