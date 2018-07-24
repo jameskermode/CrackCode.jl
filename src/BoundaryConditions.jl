@@ -6,7 +6,7 @@ module BoundaryConditions
 
 
     export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
-                intersection_line_plane_types
+                intersection_line_plane_types, filter_crack_bonds, 
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -343,6 +343,92 @@ module BoundaryConditions
         return pair_list, mP, across_crack
     end
 
+    """
+    `find_next_bond_along(atoms::Atoms, pair_list::Array{Tuple{Int, Int}},
+                            n_crack_plane::JVecF, point_cp::JVecF, n_crack_front::JVecF, point_cf::JVecF;
+                                                    max_pair_separation::Float64 = 0.0, verbose::Int = 0)`
+
+
+    Return copy pair list with the crack bonds removed. Bonds/line segments between pairs are considered 
+    if they all cross the crack plane and
+        - are totally behind the crack front
+        - cross the crack front
+        - are partly on the crack front and behind the crack front
+        - on the crack front itself
+
+    ### Arguments
+    - `atoms::Atoms`
+    - `pair_list::Array{Tuple{Int, Int}}` 
+    - `n_crack_plane::JVecF` : normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `point_cp::JVecF` : point on the crack plane, `-dot(n, point_cp)`
+    - `n_crack_front::JVecF` normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `point_cp::JVecF` : point on the crack front, `-dot(n, point_cf)`
+    - `max_pair_separation::Float64 = 0.0` : set a max distance of line segments to consider. If 0.0 => will check each pair
+    - `verbose::Int = 0`
+
+    ### Returns
+    - `next_bond::Array{Tuple{Int, Int}}` : pair list that are considered the next bond(s)
+
+    if `verbose == 1`, also returns
+    - `list_p::Array{Tuple{Int, Int}}` : pair list of all the bonds ahead of the crack front and cross the crack plane
+
+    """
+    function find_next_bond_along(atoms::Atoms, pair_list::Array{Tuple{Int, Int}},
+                                    n_crack_plane::JVecF, point_cp::JVecF, n_crack_front::JVecF, point_cf::JVecF;
+                                                            max_pair_separation::Float64 = 0.0, verbose::Int = 0)
+        
+        # get sorted intersection types of the two planes
+        pair_types_cp = intersection_line_plane_types(atoms, pair_list, n_crack_plane, point_cp)
+        pair_types_cf = intersection_line_plane_types(atoms, pair_list, n_crack_front, point_cf)
+
+        # combine sets of types
+        # get all the pairs that arecross the crack plane
+        # and are infront of the crack front
+        cs1 = pair_types_cp[:side_crosses_plane] .* pair_types_cf[:side_with_normal]
+        cs2 = pair_types_cp[:side_crosses_plane] .* pair_types_cf[:side_on_plane_with_normal] # including ones that across over 
+
+        # generate list of pairs
+        list_p = Array{Tuple{Int, Int}}(0)
+        append!(list_p, pair_list[cs1])
+        append!(list_p, pair_list[cs2])
+        
+        # find pair(s) closest to the crack front
+        i_store = Array{Int}(0) # keep indices
+        k_tmp = 0.0
+        d_cf = -dot(n_crack_front, point_cf)
+
+        for i in 1:length(list_p)
+            p1 = atoms[list_p[i][1]]
+            p2 = atoms[list_p[i][2]]
+            
+            # skip pairs with separations larger than given value
+            if max_pair_separation != 0.0
+                if norm(p2 - p1) > max_pair_separation continue end
+            end
+            # calculate average value from equation of a plane
+            k1 = dot(n_crack_front, p1) + d_cf
+            k2 = dot(n_crack_front, p2) + d_cf
+            k_av = (k1 + k2)*0.5
+            if i == 1 # need to store the very first one
+                k_tmp = k_av
+                append!(i_store, i)
+            end
+            if k_av < k_tmp # new lower cost value found
+                k_tmp = k_av 
+                i_store = Array{Int}(0) # re-initialise / clear store array
+                append!(i_store, i)
+            elseif k_av == k_tmp # append, pairs with the same value
+                append!(i_store, i)
+            end
+            
+        end
+        next_bond = list_p[i_store] 
+        if length(i_store) > 1 info("next_bond is an array of bonds") end
+        
+        if verbose == 1 return next_bond, list_p end
+        return next_bond
+    end
+
 ### Old code
 
 #using JuLIP
@@ -454,70 +540,6 @@ function get_bonds(atoms::AbstractAtoms, index::Int; bonds_list = nothing)
     # CrackCode.Plot.plot_bonds(atoms, bonds_list, indices=list_a1)
     # CrackCode.Plot.plot_bonds(atoms, bonds_list_a1)
     return bonds_list[indices_list], mB_indices_list, indices_list
-
-end
-
-
-"""
-`find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)`
-
-Find the bond that is beyond the crack tip
-
-### Arguments
-- `atoms`: Atoms object
-- `bonds_list`: list of bond tuples
-- `a0`: lattice spacing
-- `tip`: current tip position
-- `tip_new`: next tip position, advanced by one bond
-- `plot=false`: plot to visually show if it worked
-
-### Notes
-- not always guarantee to be one bond, fix
-
-"""
-function find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)
-
-    pos = get_positions(atoms)
-    radial_distances = norm.(pos .- [tip])
-
-    # all atoms near the current (given) crack tip
-    nearby = find( radial_distances .< a0 )
-
-    # of the nearby list find the atom with the closest distance from the tip
-    distances = zeros(length(nearby))
-    pos = get_positions(atoms)
-    for i in 1:length(nearby)
-        distances[i] = norm(tip - pos[nearby[i]])
-    end
-    index = find(distances .== minimum(distances))
-    a1 = nearby[index][1]
-
-    # list of atoms bonded to a1
-    bonds_list_a1, mB_a1, list_a1 = BoundaryConditions.get_bonds(atoms, a1, bonds_list = bonds_list)
-
-
-    # Note:
-    #   - technically don't need above section, if you provided a bonds_list with crack bonds already removed
-    #   - next two lines should just find the next bond along
-    #   - top section only limits the selection of bonds to the region near the crack tip
-    #       - needed if bonds_list is complete
-    #   - crack in single line, x, this might be fine, might need something like this for crack that moves in plane
-    #   - currently only works in x, would need to change filter_crack_bonds as that only works in x too
-
-    # likely to not generalise to other systems, might get more than one that crosses
-
-    # should sperate this part out?
-    # as filter_crack_bonds is already a function then the find_next_bond_along()
-    # algorithim is by it self, maybe need to change the name
-
-    # next bond (hopfully just one bond) along the crack tip
-    _, _, across_crack = BoundaryConditions.filter_crack_bonds(atoms, bonds_list, tip_new)
-
-
-
-    bond = across_crack
-
-    return bond
 
 end
 
