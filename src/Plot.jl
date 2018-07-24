@@ -1,12 +1,38 @@
-# ----- plot atoms -----
-
-# basic plotting of atoms
+# Basic plotting of atoms objects
+# and other atoms object properties
 
 module Plot
 
-using JuLIP: get_positions, mat, get_cell
-using PyPlot: plot, scatter, axis, vlines, hlines, legend, title
-using ASE
+    using JuLIP: JVecF, Atoms, get_positions, mat, get_cell
+    using PyPlot: plot, scatter, axis, vlines, hlines, legend, title
+
+    export plot_next_bond_along
+
+    """
+    `plot_next_bond_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}}, 
+    across_crack_ahead::Array{Tuple{Int, Int}}, next_bond::Array{Tuple{Int, Int}})`
+
+    2D (x,y) plot for a visual check of picking the next bond.
+    Need the arrays from sub module BoundaryConditions eg;
+    - `bonds_list, mB, across_crack = filter_crack_bonds(atoms, bonds_list, normal_crack_plane, tip, normal_crack_front, tip)
+    - `next_bond, across_crack_ahead = find_next_bond_along2(atoms, bonds_list, normal_crack_plane, tip, normal_crack_front, tip, verbose = 1)`
+    then 
+    - plot_next_bond_along(atoms, tip, across_crack, across_crack_ahead, next_bond)
+    """
+    function plot_next_bond_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}}, 
+                                                                            across_crack_ahead::Array{Tuple{Int, Int}}, next_bond::Array{Tuple{Int, Int}})
+        plot_atoms(atoms, scale=2, colour="grey")
+        scatter(tip[1], tip[2], color="b", s=8, label="tip")
+        plot_bonds(atoms, across_crack_behind, colour = "grey", label="pairs: across crack and behind and on tip")
+        plot_bonds(atoms, across_crack_ahead, colour = "r", label="pairs: across crack and ahead tip")
+        plot_bonds(atoms, next_bond, colour = "g", linewidth=1, label="pair(s): next_bond(s)")
+
+        dis = norm(atoms[list_p[1][2]] - atoms[list_p[1][1]]) # get some distance to only zoom in
+        axis(box_around_point([atoms_dict[:centre_point][1], atoms_dict[:centre_point][2]], [2.5*dis,2.5*dis]))
+        legend()
+    end
+
+# Old code
 
 """
 `box_around_point(point, box_width)`
@@ -164,68 +190,6 @@ function plot_circle(;radius=1.0, centre=[0.0,0.0,0.0], colour="blue",
 
     plot(x , y, color=colour, linestyle=linestyle, linewidth=linewidth, label=label)
 end
-
-
-# plot for the function
-# find_next_bond_along(atoms, bonds_list, a0, tip, tip_new; plot=false)
-
-"""
-`plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_crack_next)`
-
-2D (x,y) plot for the function `find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)`
-a visual check for the above function to make sure its selected the correct bond
-
-### Arguments
-- `atoms`: Atoms object
-- `a0`: crystal lattice constant
-- `tip`: current tip vector
-- `tip_next`: next tip vector
-- `across_crack`: bonds that cross the crack behind `tip`, comes from `BoundaryConditions.filter_crack_bonds()`
-- `across_crack_next`: bond that crosses the crack behind `tip_next`, comes from `find_next_bond_along()`
-"""
-function plot_next_bond_along(atoms, a0, tip, tip_next, across_crack, across_crack_next)
-
-    # poor way of doing it as if BoundaryConditions.find_next_bond_along()
-    # changes this section will need to be change too
-
-    # recalculate some values to plot
-    # variables: nearby, a1
-    # section: from BoundaryConditions.find_next_bond_along()
-    pos = get_positions(atoms)
-    radial_distances = norm.(pos .- [tip])
-
-    # all atoms near the current (given) crack tip
-    nearby = find( radial_distances .< a0 )
-
-    # of the nearby list find the atom with the closest distance from the tip
-    distances = zeros(length(nearby))
-    pos = get_positions(atoms)
-    for i in 1:length(nearby)
-        distances[i] = norm(tip - pos[nearby[i]])
-    end
-    index = find(distances .== minimum(distances))
-    a1 = nearby[index][1]
-    # section: end
-
-    scatter(tip[1], tip[2], color="red", s=8, label="tip")
-    scatter(tip_next[1], tip_next[2], color="purple", s=8, label="tip next")
-
-    plot_atoms(atoms)
-
-    plot_atoms(atoms, indices=nearby, colour="blue", scale=5, label="nearby to tip")
-    plot_circle(radius=a0, centre=tip, colour="grey", label="nearby radius")
-
-    plot_atoms(atoms, indices=a1, colour="green", scale=10, label="chosen nearby atom")
-
-    plot_bonds(atoms, across_crack, linewidth=0.5, label="across crack")
-    plot_bonds(atoms, [across_crack_next], linewidth=2.0, label="next bond")
-
-    axis(box_around_point([tip[1], tip[2]], [2.5*a0,2.5*a0]))
-    title("Visual Check: Next bond along that was chosen")
-    legend()
-
-end
-
 
 
 
