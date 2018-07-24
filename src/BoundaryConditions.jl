@@ -458,53 +458,6 @@ function get_bonds(atoms::AbstractAtoms, index::Int; bonds_list = nothing)
 end
 
 
-
-# Could even remove the abstraction of concept of crack
-# have it as a line, point etc
-
-"""
-    crosses_crack(atoms, i, j, tip)
-
-Decide whether a bond crosses the line to where the crack tip is.
-Returns boolean, true if it DOES cross the crack line.
-"""
-function crosses_crack(atoms, i::Int, j::Int, tip)
-
-    pos = get_positions(atoms)
-    p1 = pos[i]
-    p2 = pos[j]
-
-    crack_bond = false
-    # selects left hand side of tip
-    if (p1[1] < tip[1]) | (p2[1] < tip[1])
-        # check if atom 1 is above and atom 2 is below
-        # or if atom 2 is above and atom 1 is below
-        if ((p1[2] > tip[2]) & (p2[2] < tip[2])) | ((p1[2] < tip[2]) & (p2[2] > tip[2]))
-            # multiple indices in the list mean, more than one bond
-            crack_bond = true
-        end
-    end
-    return crack_bond
-end
-
-"""
-Compare one atom, `i`, to several atoms `j`
-i.e. which atoms connected to `i` crosses the crack
-"""
-function crosses_crack(atoms, i::Int, j::Array, tip)
-
-    crack_bonds = []
-    for _j in j
-        push!(crack_bonds, BoundaryConditions.crosses_crack(atoms, i, _j, tip))
-    end
-
-    return crack_bonds
-end
-
-
-
-
-
 """
 `find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)`
 
