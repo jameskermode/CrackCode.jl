@@ -286,6 +286,63 @@ module BoundaryConditions
         return intersection_line_plane_types(get_positions(atoms), pairs, n, point_on_plane)
     end
 
+    """
+    `filter_crack_bonds(atoms::Atoms, pair_list::Array{Tuple{Int, Int}}, n_crack_plane::JVecF, point_cp::JVecF,  
+    n_crack_front::JVecF, point_cf::JVecF)`
+
+    Return copy pair list with the crack bonds removed. Bonds/line segments between pairs are considered 
+    if they all cross the crack plane and
+        - are totally behind the crack front
+        - cross the crack front
+        - are partly on the crack front and behind the crack front
+        - on the crack front itself
+
+    ### Arguments
+    - `atoms::Atoms`
+    - `pair_list::Array{Tuple{Int, Int}}` 
+    - `n_crack_plane::JVecF` : normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `point_cp::JVecF` : point on the crack plane, `-dot(n, point_cp)`
+    - `n_crack_front::JVecF` normal to plane eg `n_x*x + n_y*y + n_z*z + d = 0`
+    - `point_cp::JVecF` : point on the crack front, `-dot(n, point_cf)`
+
+    ### Returns
+    - `pair_list::Array{Tuple{Int, Int}}` : new pair list with crack bonds removed
+    - `mP::Array{JVecF} : mid points of the positions of the pairs
+    - `across_crack::Array{Tuple{Int, Int}}` : list of pairs that were removed
+    """
+    function filter_crack_bonds(atoms::Atoms, pair_list::Array{Tuple{Int, Int}}, 
+                                                n_crack_plane::JVecF, point_cp::JVecF,  
+                                                n_crack_front::JVecF, point_cf::JVecF)
+
+        # get sorted intersection types of the two planes
+        pair_types_cp = intersection_line_plane_types(atoms, pair_list, n_crack_plane, point_cp)
+        pair_types_cf = intersection_line_plane_types(atoms, pair_list, n_crack_front, point_cf)
+
+        # combine sets of types
+        # get all the pairs that are cross the crack plane
+        # and are behind and on the crack front
+        cs1 = pair_types_cp[:side_crosses_plane] .* pair_types_cf[:side_inverse_normal]
+        cs2 = pair_types_cp[:side_crosses_plane] .* pair_types_cf[:side_crosses_plane] # including ones that across over
+        cs3 = pair_types_cp[:side_crosses_plane] .* pair_types_cf[:side_on_plane_inverse_normal]
+        cs4 = pair_types_cp[:side_crosses_plane] .* pair_types_cf[:side_on_plane] 
+
+        # generate list of pairs
+        across_crack = Array{Tuple{Int, Int}}(0)
+        append!(across_crack, pair_list[cs1])
+        append!(across_crack, pair_list[cs2])
+        append!(across_crack, pair_list[cs3])
+        append!(across_crack, pair_list[cs4])
+        
+        # remove across crack pairs
+        pair_list = filter(array -> array ∉ across_crack, pair_list)
+        
+        # get mid points of new pair list
+        P = get_positions(atoms)
+        mP = [ 0.5*(P[p[1]] + P[p[2]])  for p in pair_list]
+        
+        return pair_list, mP, across_crack
+    end
+
 ### Old code
 
 #using JuLIP
@@ -446,34 +503,7 @@ end
 
 
 
-"""
-    filter_crack_bonds(atoms::AbstractAtoms, bonds_list, crack_tip)
 
-Returns new `bonds_list` and new `mB` with the bonds removed that crossed the crack.
-Also returns `across_crack` list of bonds pairs that were removed.
-
-"""
-# the filter part was a separate function 'remove_bonds'
-# generic and easy to remember but now one line of code, bit pointless
-function filter_crack_bonds(atoms::AbstractAtoms, bonds_list, crack_tip)
-
-    across_crack = Array{Tuple{Int, Int}}(0)
-    for b in bonds_list
-        i = b[1]
-        j = b[2]
-
-        if (crosses_crack(atoms, i, j, crack_tip) == true)
-            push!(across_crack, (i,j))
-        end
-    end
-
-    bonds_list = filter(array -> array ∉ across_crack, bonds_list)
-
-    P = get_positions(atoms)
-    mB = [ 0.5*(P[b[1]] + P[b[2]])  for b in bonds_list]
-
-    return bonds_list, mB, across_crack
-end
 
 """
 `find_next_bond_along(atoms, bonds_list, a0, tip, tip_new)`
