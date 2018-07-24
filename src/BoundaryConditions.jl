@@ -6,7 +6,7 @@ module BoundaryConditions
 
 
     export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
-                intersection_line_plane_types, filter_crack_bonds, 
+                intersection_line_plane_types, filter_crack_bonds, find_next_bond_along
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
