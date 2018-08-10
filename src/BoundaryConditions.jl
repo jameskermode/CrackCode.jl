@@ -511,7 +511,13 @@ module BoundaryConditions
                 
             # main condition for determining search for K
             # fit crack tip (in x and y) to compare later
-            tip_f = fit_crack_tip_displacements(atoms, atoms_dict, tip, mask=[1,1,0])    
+            tip_f = nothing
+            try
+                tip_f = fit_crack_tip_displacements(atoms, atoms_dict, tip, mask=[1,1,0])
+            catch
+                error("Fit crack tip failed, tip has moved a lot, K is either too small or large for this system")
+                return
+            end
             tip_diff_x = abs(tip[1] - tip_f[1])
             @printf "Difference in given tip and fitted tip in x %.7f\n" tip_diff_x
             if tip_diff_x <= tip_tol
