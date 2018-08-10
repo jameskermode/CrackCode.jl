@@ -4,9 +4,8 @@ module BoundaryConditions
     using LsqFit: curve_fit
     using StaticArrays: SVector
 
-
     export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
-                intersection_line_plane_types, filter_crack_bonds, find_next_bond_along
+                intersection_line_plane_types, filter_crack_bonds, find_next_bond_along, find_k
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -428,6 +427,260 @@ module BoundaryConditions
         if verbose == 1 return next_bond, list_p end
         return next_bond
     end
+
+    # functions required for find_k()
+    # script like function, either split or move
+    using JuLIP: Atoms, JVecF, JVecsF, minimise!, Exp, get_positions, set_positions!, cutoff, mat
+    using ..ManAtoms: separation
+    #using CrackCode.BoundaryConditions: u_cle, fit_crack_tip_displacements
+    using SciScriptTools.Optimise: bisection_search
+
+    # required for debug parts
+    using Logging
+    using ..Plot: plot_atoms, plot_bonds, box_around_point
+    using ..Potentials: potential_energy
+    using PyPlot: figure, plot, title, axis, legend, vlines, hlines, scatter, xlabel, ylabel, savefig
+    """
+    `find_k(atoms::Atoms, atoms_dict::Dict, initial_K::Float64, tip::JVecF, 
+                        bond_length::Float64, separation_length::Float64, 
+                        next_pairs::Array{Tuple{Int, Int}}, across_crack::Array{Tuple{Int, Int}};
+                        tip_tol::Float64 = 0.01, bond_length_tol::Float64 = 0.2, separation_tol::Float64 = 0.05, 
+                        maxsteps::Int = 10, output_dir::String = "nothing")`
+
+    Self consistently find a good starting stress intensity factor, K, mainly based on fitting the crack tip using
+    `CrackCode.BoundaryConditions.fit_crack_tip_displacements()`
+
+    ### Arguments
+    - `atoms::Atoms`
+    - `atoms_dict::Dict`
+    - `initial_K::Float64` : starting guess K # or K_to_u0.ipynb"
+    - `tip::JVecF` : crack tip position, where it should exist
+    - `bond_length::Float64` : (normal bulk) bond length
+    - `separation_length::Float64` : length at which atom pair are considered open/unconnected ie cutoff(calc)
+    - `next_pairs::Array{Tuple{Int, Int}}` : pairs that should be 'closed'
+    - `across_crack::Array{Tuple{Int, Int}}` : pairs that should be 'open'
+
+    ### Optional Arguments
+    - `tip_tol::Float64 = 0.01` : Angstrom value of how close the fitted tip should be
+    - `bond_length_tol::Float64 = 0.2` : (scaled percentage) of a bond_length
+                            ie `bond_length + bond_length*bond_length_tol`, is considered a optimal bond length
+    - `separation_tol::Float64 = 0.05` : (scaled percentage) of a separation_length
+                            ie `separation_length - separation_length*separation_tol`, is considered an open bond
+    - `maxsteps::Int = 10` : number of iteration attempts
+    - `output_dir::String` : location to output debug plots
+
+    ### Returns
+    - `K::Float64` : chosen K
+    - `u_i::JVecsF` : displacement field at chosen K
+    - `u_min::JVecsF` : minimised displacement field at chosen K
+
+    """
+    function find_k(atoms::Atoms, atoms_dict::Dict, initial_K::Float64, tip::JVecF, 
+                            bond_length::Float64, separation_length::Float64, 
+                            next_pairs::Array{Tuple{Int, Int}}, across_crack::Array{Tuple{Int, Int}};
+                            tip_tol::Float64 = 0.01, bond_length_tol::Float64 = 0.2, separation_tol::Float64 = 0.05, 
+                            maxsteps::Int = 10, output_dir::String = "nothing")
+
+        pos_cryst = get_positions(atoms)
+        points = Array{Float64}([initial_K])
+        K = points[length(points)]
+        u_i = nothing
+        u_min = nothing
+        directions = nothing
+        dir_next = nothing 
+
+        # variables for debug parts
+        seps_open_sums = Array{Float64}(0)
+        seps_closed_sums = Array{Float64}(0)
+        tip_fs = Array{JVecF}(0)
+        tip_diffs = Array{Float64}(0)
+        if output_dir == "nothing" output_dir = pwd() end # initialise output_dir
+        
+        for i in 1:maxsteps
+            
+            passes = 0
+            dir_next = 0
+            K = points[length(points)]
+            
+            @printf "--- trying K: %.7f \n" K
+            set_positions!(atoms, pos_cryst)
+            u_i = u_cle(atoms, tip, K, atoms_dict[:E], atoms_dict[:nu])
+            set_positions!(atoms, pos_cryst + u_i)
+            minimise!(atoms, precond=Exp(atoms, r0=bond_length)) # improvement: should try pass this in
+            u_min = get_positions(atoms) - pos_cryst
+                
+            # main condition for determining search for K
+            # fit crack tip (in x and y) to compare later
+            tip_f = fit_crack_tip_displacements(atoms, atoms_dict, tip, mask=[1,1,0])    
+            tip_diff_x = abs(tip[1] - tip_f[1])
+            @printf "Difference in given tip and fitted tip in x %.7f\n" tip_diff_x
+            if tip_diff_x <= tip_tol
+                @printf "fitted tip is within tolerance\n"
+                passes += 1
+            end
+            push!(tip_fs, tip_f)
+            push!(tip_diffs, tip_diff_x)
+            
+            # across crack check
+            debug("How many pairs across the crack are open?")
+            seps_u_min = separation( pos_cryst + u_min, across_crack )
+            seps_open = find(seps_u_min .> separation_length - separation_tol)
+            debug("  Open Pairs: ", length(seps_open))
+            debug("Num of Pairs: ", length(across_crack))
+            debug("Min separation of across_crack: ", minimum(seps_u_min))
+            # they should all be open
+            if length(seps_open) == length(across_crack) 
+                @printf "across crack pairs are all open\n"
+                passes += 1
+            end
+            
+            seps_open_sum = sum(seps_u_min)
+            push!(seps_open_sums, seps_open_sum)
+            
+            # next bond check
+            debug("How many next pairs are closed?")
+            seps_u_min_next_pairs = separation( pos_cryst + u_min, next_pairs )
+            seps_next_pairs_closed = find(seps_u_min_next_pairs .< bond_length + bond_length_tol)
+            debug("Closed Pairs: ", length(seps_next_pairs_closed))
+            debug("Num of Pairs: ", length(next_pairs))
+            debug("Max separation of next_pairs: ", maximum(seps_u_min_next_pairs))
+            
+            # they should all be closed
+            if length(seps_next_pairs_closed) == length(next_pairs)
+                @printf "next pairs are all closed\n"
+                passes += 1
+            end
+            
+            seps_closed_sum = sum(seps_u_min_next_pairs)
+            push!(seps_closed_sums, seps_closed_sum)
+            
+            # plot system and tip
+            if Logging.configure().level == DEBUG
+                figure()
+                plot_atoms(atoms, colour = "grey")
+                plot_bonds(atoms, across_crack, label = "pairs: across crack")
+                plot_bonds(atoms, next_pairs, colour="red", label = "pairs: next")
+                t_x = tip[1] ; t_y = tip[2]
+                plot(t_x, t_y, "o", markersize = 4, label = "tip")
+                tf_x = tip_f[1] ; tf_y = tip_f[2]
+                plot(tf_x, tf_y, "o", markersize = 4, label = "tip")
+                title("K : $(round(K, 7))")
+                axis(box_around_point([t_x, t_y], [10,10]))
+                legend()
+            end
+            
+            # ideal situation
+            # tip within tip tolerance
+            # across_crack pairs all open within tolerance
+            # next_ pairs all closed within tolerance
+            if passes >= 3 break end
+            
+            # tip bisection search has convergence to be within the tip tolerance for past steps
+            if length(find(tip_diffs .< tip_tol)) >= 5
+                @printf "tip convergenced to be within the tiptolerance for past 5 iterations \n"
+                break
+            end
+            
+            @printf "--- What to do with K?\n"
+            # if crack is closing up
+            if (tip[1] - tip_f[1]) > 0.0
+                @printf "increasing K for next loop\n"
+                dir_next = 1
+            #if crack is opening up
+            elseif (tip[1] - tip_f[1]) < 0.0
+                @printf "decreasing K for next loop\n"
+                dir_next = -1
+            end
+            
+            # old logic using sum separation distances
+            #=
+            # if crack is closing up
+            if length(seps_open) != length(across_crack)
+                @printf "increasing K for next loop\n"
+                dir_next = 1   
+            #if crack is opening up
+            elseif length(seps_next_pairs_closed) != length(next_pairs)
+                @printf "decreasing K for next loop\n"
+                dir_next = -1
+            end
+            =#
+                
+            K, points, directions = bisection_search(points, dir_next, directions)
+
+        end
+
+        # plot simple potenital (using dimer) with length tolerances
+        if Logging.configure().level == DEBUG
+            figure()
+            r = collect(linspace(bond_length*0.8, cutoff(atoms.calc)*1.2, 100))
+            pe = potential_energy(atoms, atoms.calc, r)
+            plot(r, pe, color = "b", label = "simple dimer potential")
+            xlabel("Dimer Separation Distance, r")
+            ylabel("Energy, eV")
+            vlines(bond_length*(1-bond_length_tol), minimum(pe), maximum(pe), 
+                                            color = "orange", linestyle="dashed", label = "bond_length tolerance")
+            vlines(bond_length*(1+bond_length_tol), minimum(pe), maximum(pe), 
+                                            color = "orange", linestyle="dashed")
+            vlines(separation_length*(1-separation_tol), minimum(pe), maximum(pe), linestyle="dashed", 
+                                            color = "red", label = "separation_length tolerance")
+            vlines(separation_length*(1+separation_tol), minimum(pe), maximum(pe), linestyle="dashed", 
+                                            color = "red",)
+            title("Simple Dimer Overlayed with Length Tolerances")
+            legend()
+            savefig(joinpath(output_dir, "debug_dimer_overlayed_with_length_tolerances.pdf"))
+        end   
+            
+        # plot difference for given tip and fitted tip
+        if Logging.configure().level == DEBUG
+            figure()
+            iters = collect(1:length(tip_diffs))
+            plot(iters, tip_diffs, "o-")
+            hlines(tip_tol, minimum(iters), maximum(iters), linestyle="dashed", color = "grey", label = "tip_tol $tip_tol")
+            xlabel("Iteration")
+            ylabel("abs( tip_given - tip_fitted )")
+            title("Tip Movement Convergence")
+            legend()
+            savefig(joinpath(output_dir, "debug_tip_movement_convergence.pdf"))
+        end
+            
+        # plot sum of separations of next_pairs and across crack
+        if Logging.configure().level == DEBUG
+            figure()
+            x = mat(tip_fs)[1,:]
+            y = seps_closed_sums
+            scatter(x, y, label = "different systems wrt K")
+            index = length(points)-1
+            scatter(x[index], y[index], color = "red", label = "chosen system wrt K")
+            optimal_sum = bond_length*length(next_pairs)
+            hlines(optimal_sum, minimum(x), maximum(x), linestyles="dashed", color="orange", label = "optimal sum")
+            vlines(tip[1], minimum(y), maximum(y), linestyles="dashed", color="grey", label = "target tip")
+            xlabel("Crack Tip Position in x")
+            ylabel("Sum of separations of next_pairs")
+            title("Optimal Sum of Separation of next_pairs wrt K and tip")
+            legend()
+            savefig(joinpath(output_dir, "debug_optimal_separation_of_next_pairs.pdf"))
+                
+            figure()
+            x = mat(tip_fs)[1,:]
+            y = seps_open_sums
+            scatter(x, y, label = "different systems wrt K")
+            index = length(points)-1
+            scatter(x[index], y[index], color = "red", label = "chosen system wrt K")
+            minimum_sum = cutoff(atoms.calc)*length(across_crack)
+            hlines(minimum_sum, minimum(x), maximum(x), linestyles="dashed", color="orange", label = "minimum sum")
+            vlines(tip[1], minimum(y), maximum(y), linestyles="dashed", color="grey", label = "target tip")
+            xlabel("Crack Tip Position in x")
+            ylabel("Sum of separations of across_crack")
+            title("Minimum Sum of Separation of across_crack wrt K and tip")
+            legend()
+            savefig(joinpath(output_dir, "debug_minimum_separation_of_across_crack.pdf"))
+        end  
+            
+        if length(points)-1 == maxsteps @printf "maxsteps: %d reached\n" maxsteps end
+        return K, u_i, u_min
+    end
+
+
 
 ### Old code
 

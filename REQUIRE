@@ -2,3 +2,7 @@ julia 0.6
 StaticArrays
 JuLIP 
 ASE
+ConstrainedOptim
+LsqFit
+Logging
+SciScriptTools

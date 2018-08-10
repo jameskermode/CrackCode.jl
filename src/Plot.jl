@@ -6,7 +6,7 @@ module Plot
     using JuLIP: JVecF, Atoms, get_positions, mat, get_cell
     using PyPlot: plot, scatter, axis, vlines, hlines, legend, title
 
-    export plot_next_bond_along
+    export plot_next_bond_along, plot_atoms, plot_bonds, box_around_point
 
     """
     `plot_next_bond_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}}, 
