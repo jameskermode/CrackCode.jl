@@ -495,29 +495,25 @@ module BoundaryConditions
         tip_fs = Array{JVecF}(0)
         tip_diffs = Array{Float64}(0)
         if output_dir == "nothing" output_dir = pwd() end # initialise output_dir
-        
+
         for i in 1:maxsteps
-            
+
             passes = 0
             dir_next = 0
             K = points[length(points)]
-            
+            atoms_dict[:K] = K  # for use in fit_crack_tip_displacements()
+
             @printf "--- trying K: %.7f \n" K
             set_positions!(atoms, pos_cryst)
             u_i = u_cle(atoms, tip, K, atoms_dict[:E], atoms_dict[:nu])
             set_positions!(atoms, pos_cryst + u_i)
             minimise!(atoms, precond=Exp(atoms, r0=bond_length)) # improvement: should try pass this in
             u_min = get_positions(atoms) - pos_cryst
-                
+
             # main condition for determining search for K
             # fit crack tip (in x and y) to compare later
             tip_f = nothing
-            try
-                tip_f = fit_crack_tip_displacements(atoms, atoms_dict, tip, mask=[1,1,0])
-            catch
-                error("Fit crack tip failed, tip has moved a lot, K is either too small or large for this system")
-                return
-            end
+            tip_f = fit_crack_tip_displacements(atoms, atoms_dict, tip, mask=[1,1,0])
             tip_diff_x = abs(tip[1] - tip_f[1])
             @printf "Difference in given tip and fitted tip in x %.7f\n" tip_diff_x
             if tip_diff_x <= tip_tol
@@ -526,7 +522,7 @@ module BoundaryConditions
             end
             push!(tip_fs, tip_f)
             push!(tip_diffs, tip_diff_x)
-            
+
             # across crack check
             debug("How many pairs across the crack are open?")
             seps_u_min = separation( pos_cryst + u_min, across_crack )
@@ -539,10 +535,10 @@ module BoundaryConditions
                 @printf "across crack pairs are all open\n"
                 passes += 1
             end
-            
+
             seps_open_sum = sum(seps_u_min)
             push!(seps_open_sums, seps_open_sum)
-            
+
             # next bond check
             debug("How many next pairs are closed?")
             seps_u_min_next_pairs = separation( pos_cryst + u_min, next_pairs )
@@ -550,16 +546,16 @@ module BoundaryConditions
             debug("Closed Pairs: ", length(seps_next_pairs_closed))
             debug("Num of Pairs: ", length(next_pairs))
             debug("Max separation of next_pairs: ", maximum(seps_u_min_next_pairs))
-            
+
             # they should all be closed
             if length(seps_next_pairs_closed) == length(next_pairs)
                 @printf "next pairs are all closed\n"
                 passes += 1
             end
-            
+
             seps_closed_sum = sum(seps_u_min_next_pairs)
             push!(seps_closed_sums, seps_closed_sum)
-            
+
             # plot system and tip
             if Logging.configure().level == DEBUG
                 figure()
@@ -574,44 +570,32 @@ module BoundaryConditions
                 axis(box_around_point([t_x, t_y], [10,10]))
                 legend()
             end
-            
+
             # ideal situation
             # tip within tip tolerance
             # across_crack pairs all open within tolerance
             # next_ pairs all closed within tolerance
             if passes >= 3 break end
-            
+
             # tip bisection search has convergence to be within the tip tolerance for past steps
             if length(find(tip_diffs .< tip_tol)) >= 5
                 @printf "tip convergenced to be within the tiptolerance for past 5 iterations \n"
                 break
             end
-            
+
             @printf "--- What to do with K?\n"
-            # if crack is closing up
-            if (tip[1] - tip_f[1]) > 0.0
-                @printf "increasing K for next loop\n"
-                dir_next = 1
-            #if crack is opening up
-            elseif (tip[1] - tip_f[1]) < 0.0
-                @printf "decreasing K for next loop\n"
-                dir_next = -1
-            end
-            
-            # old logic using sum separation distances
-            #=
-            # if crack is closing up
-            if length(seps_open) != length(across_crack)
-                @printf "increasing K for next loop\n"
-                dir_next = 1   
-            #if crack is opening up
-            elseif length(seps_next_pairs_closed) != length(next_pairs)
-                @printf "decreasing K for next loop\n"
-                dir_next = -1
-            end
-            =#
-                
-            K, points, directions = bisection_search(points, dir_next, directions)
+            if (tip[1] - tip_f[1]) > 0.0 dir_next = 1 # if crack is closing up
+            elseif (tip[1] - tip_f[1]) < 0.0 dir_next = -1 end #if crack is opening up
+
+            if dir_next == 1 @printf "increasing K for next loop\n"
+            elseif dir_next == -1 @printf "decreasing K for next loop\n" end
+
+            # search scale increment (when not bisecting)
+            bond_safe = bond_length + bond_length_tol
+            diff_per = (maximum(seps_u_min_next_pairs) - bond_safe) / bond_safe
+            search_scale = abs(diff_per)
+
+            K, points, directions = bisection_search(points, dir_next, directions, search_scale = search_scale )
 
         end
 
@@ -635,7 +619,7 @@ module BoundaryConditions
             legend()
             savefig(joinpath(output_dir, "debug_dimer_overlayed_with_length_tolerances.pdf"))
         end   
-            
+
         # plot difference for given tip and fitted tip
         if Logging.configure().level == DEBUG
             figure()
@@ -648,7 +632,7 @@ module BoundaryConditions
             legend()
             savefig(joinpath(output_dir, "debug_tip_movement_convergence.pdf"))
         end
-            
+
         # plot sum of separations of next_pairs and across crack
         if Logging.configure().level == DEBUG
             figure()
@@ -665,7 +649,7 @@ module BoundaryConditions
             title("Optimal Sum of Separation of next_pairs wrt K and tip")
             legend()
             savefig(joinpath(output_dir, "debug_optimal_separation_of_next_pairs.pdf"))
-                
+
             figure()
             x = mat(tip_fs)[1,:]
             y = seps_open_sums
@@ -681,7 +665,7 @@ module BoundaryConditions
             legend()
             savefig(joinpath(output_dir, "debug_minimum_separation_of_across_crack.pdf"))
         end  
-            
+
         if length(points)-1 == maxsteps @printf "maxsteps: %d reached\n" maxsteps end
         return K, u_i, u_min
     end
