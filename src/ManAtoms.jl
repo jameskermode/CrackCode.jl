@@ -178,6 +178,12 @@ module ManAtoms
 
     Note: Separation distances between atom pairs should initially be satisfied. (Warning is produced)
 
+    ### Usage
+    ```
+    move_atom_pair!(atoms, pairs, separations)
+    res = pair_constrained_minimise!(atoms, pairs, separations, s_tol = 1e-3, g_tol = 1e-5)
+    ```
+
     ### Arguments
     - `atoms::Atoms`
     - `pairs::Array{Tuple{Int, Int}}` : list of atom pairs
