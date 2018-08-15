@@ -5,7 +5,7 @@ module BoundaryConditions
     using StaticArrays: SVector
 
     export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
-                intersection_line_plane_types, filter_crack_bonds, find_next_bond_along, find_k
+                intersection_line_plane_types, filter_crack_bonds, find_next_bond_along, find_k, filter_pairs_indices
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -670,6 +670,32 @@ module BoundaryConditions
         return K, u_i, u_min
     end
 
+    """
+    `filter_pairs_indices(pair_list::Array{Tuple{Int, Int}}, indices::Array{Int})`
+
+    Filter pairs that are associated with particular indices
+
+    ### Arguments
+    - `pair_list::Array{Tuple{Int, Int}}` : list of pairs
+    - `indices::Array{Int}` : list of atoms indices to exclude from list of pairs
+    """
+    function filter_pairs_indices(pair_list::Array{Tuple{Int, Int}}, indices::Array{Int})
+        remove_indices = Array{Int}(0)
+        for pi in 1:length(pair_list)
+            p_i = pair_list[pi][1] ; p_j = pair_list[pi][2]
+            if length(find(p_i .== indices)) >= 1 push!(remove_indices, pi)
+            elseif length(find(p_j .== indices)) >= 1 push!(remove_indices, pi) end
+        end
+
+        pair_list_reduced = filter(array -> array ∉ remove_indices, linearindices(1:length(pair_list)))
+
+        return pair_list_reduced
+    end
+
+    function filter_pairs_indices(pair_list::Array{Tuple{Int, Int}}, index::Int)
+        return filter_pairs_indices(pair_list, [index])
+    end
+    # could filter pairs by length
 
 
 ### Old code
