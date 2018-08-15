@@ -5,7 +5,7 @@ module BoundaryConditions
     using StaticArrays: SVector
 
     export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
-                intersection_line_plane_types, filter_crack_bonds, find_next_bond_along, find_k, filter_pairs_indices
+                intersection_line_plane_types, filter_crack_bonds, find_next_bonds_along, find_k, filter_pairs_indices
 
     """
     `u_cle(atoms::Atoms, tip, K, E, nu) `
@@ -343,7 +343,7 @@ module BoundaryConditions
     end
 
     """
-    `find_next_bond_along(atoms::Atoms, pair_list::Array{Tuple{Int, Int}},
+    `find_next_bonds_along(atoms::Atoms, pair_list::Array{Tuple{Int, Int}},
                             n_crack_plane::JVecF, point_cp::JVecF, n_crack_front::JVecF, point_cf::JVecF;
                                                     max_pair_separation::Float64 = 0.0, verbose::Int = 0)`
 
@@ -366,13 +366,13 @@ module BoundaryConditions
     - `verbose::Int = 0`
 
     ### Returns
-    - `next_bond::Array{Tuple{Int, Int}}` : pair list that are considered the next bond(s)
+    - `next_bonds::Array{Tuple{Int, Int}}` : pair list that are considered the next bond(s)
 
     if `verbose == 1`, also returns
     - `list_p::Array{Tuple{Int, Int}}` : pair list of all the bonds ahead of the crack front and cross the crack plane
 
     """
-    function find_next_bond_along(atoms::Atoms, pair_list::Array{Tuple{Int, Int}},
+    function find_next_bonds_along(atoms::Atoms, pair_list::Array{Tuple{Int, Int}},
                                     n_crack_plane::JVecF, point_cp::JVecF, n_crack_front::JVecF, point_cf::JVecF;
                                                             max_pair_separation::Float64 = 0.0, verbose::Int = 0)
         
@@ -421,11 +421,11 @@ module BoundaryConditions
             end
             
         end
-        next_bond = list_p[i_store] 
-        if length(i_store) > 1 info("next_bond is an array of bonds") end
+        next_bonds = list_p[i_store]
+        if length(i_store) == 1 info("next_bonds is an array of a single bond") end
         
-        if verbose == 1 return next_bond, list_p end
-        return next_bond
+        if verbose == 1 return next_bonds, list_p end
+        return next_bonds
     end
 
     # functions required for find_k()

@@ -10,22 +10,22 @@ module Plot
 
     """
     `plot_next_bond_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}}, 
-    across_crack_ahead::Array{Tuple{Int, Int}}, next_bond::Array{Tuple{Int, Int}})`
+    across_crack_ahead::Array{Tuple{Int, Int}}, next_bonds::Array{Tuple{Int, Int}})`
 
     2D (x,y) plot for a visual check of picking the next bond.
     Need the arrays from sub module BoundaryConditions eg;
     - `bonds_list, mB, across_crack = filter_crack_bonds(atoms, bonds_list, normal_crack_plane, tip, normal_crack_front, tip)
-    - `next_bond, across_crack_ahead = find_next_bond_along2(atoms, bonds_list, normal_crack_plane, tip, normal_crack_front, tip, verbose = 1)`
+    - `next_bonds, across_crack_ahead = find_next_bond_along2(atoms, bonds_list, normal_crack_plane, tip, normal_crack_front, tip, verbose = 1)`
     then 
-    - plot_next_bond_along(atoms, tip, across_crack, across_crack_ahead, next_bond)
+    - plot_next_bond_along(atoms, tip, across_crack, across_crack_ahead, next_bonds)
     """
-    function plot_next_bond_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}}, 
-                                                                            across_crack_ahead::Array{Tuple{Int, Int}}, next_bond::Array{Tuple{Int, Int}})
+    function plot_next_bonds_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}},
+                                                                            across_crack_ahead::Array{Tuple{Int, Int}}, next_bonds::Array{Tuple{Int, Int}})
         plot_atoms(atoms, scale=2, colour="grey")
         scatter(tip[1], tip[2], color="b", s=8, label="tip")
         plot_bonds(atoms, across_crack_behind, colour = "grey", label="pairs: across crack and behind and on tip")
         plot_bonds(atoms, across_crack_ahead, colour = "r", label="pairs: across crack and ahead tip")
-        plot_bonds(atoms, next_bond, colour = "g", linewidth=1, label="pair(s): next_bond(s)")
+        plot_bonds(atoms, next_bonds, colour = "g", linewidth=1, label="pair(s): next_bond(s)")
 
         dis = norm(atoms[across_crack_ahead[1][2]] - atoms[across_crack_ahead[1][1]]) # get some distance to only zoom in
         axis(box_around_point([tip[1], tip[2]], [2.5*dis,2.5*dis]))
