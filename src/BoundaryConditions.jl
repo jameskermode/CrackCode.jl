@@ -687,9 +687,9 @@ module BoundaryConditions
             elseif length(find(p_j .== indices)) >= 1 push!(remove_indices, pi) end
         end
 
-        pair_list_reduced = filter(array -> array ∉ remove_indices, linearindices(1:length(pair_list)))
+        keep_indices = filter(array -> array ∉ remove_indices, linearindices(1:length(pair_list)))
 
-        return pair_list_reduced
+        return pair_list[keep_indices]
     end
 
     function filter_pairs_indices(pair_list::Array{Tuple{Int, Int}}, index::Int)
