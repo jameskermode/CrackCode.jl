@@ -4,7 +4,7 @@ module BoundaryConditions
     using LsqFit: curve_fit
     using StaticArrays: SVector
 
-    export u_cle, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
+    export u_cle, hessian_correction, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
                 intersection_line_plane_types, filter_crack_bonds, find_next_bonds_along, find_k, filter_pairs_indices
 
     """
