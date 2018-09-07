@@ -47,6 +47,61 @@ module BoundaryConditions
     u_cle(atoms::Atoms, tip::JVecF, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
 
     """
+    `hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})`
+
+    Return the corrected displacements, `u_c`, from solving `H \\ g`.
+
+    ### Arguments:
+    - `u::JVecsF` : initial displacements
+    - `H::SparseMatrixCSC{Float64,Int64}` : hessian, ie `H = hessian(atoms)`
+    - `g::Array{Float64}` : gradient, ie `g = gradient(atoms)`
+    - `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient where calculated on
+    """
+    function hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})
+
+        u_c = mat(u)[:]
+        u_c[idof] -=  H \ g
+        u_c = vecs(u_c)
+
+        return u_c
+    end
+
+    """
+    `hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)`
+
+    Return the corrected displacements, `u_c` on an atoms objects, from solving `H \\ g`,
+    where `H = hessian(atoms)` and `g = gradient(atoms)`.
+    Function is able to perform multiple hessian correction steps
+
+    ### Arguments:
+    - `atoms::Atoms` : atoms object
+    - `u::JVecsF` : initial displacements
+    - `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient should be calculated on
+    ### Optional Arguments:
+    - `H = nothing`: provide hessian (fixed for all steps), defaults to calculating hessian of atoms object for each step
+    - `steps = 1`: number of hessian correction steps to compute
+    """
+    function hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)
+
+        u_c = JVecsF([])
+        u_step = u # for step == 1
+
+        for step in 1:steps
+            pos_original = get_positions(atoms)
+            set_positions!(atoms, pos_original + u_step)
+
+            if H == nothing H = hessian(atoms) end
+            g = gradient(atoms)
+            u_step = hessian_correction(u_step, H, g, idof)
+
+            set_positions!(atoms, pos_original) # revert to original positions
+            u_c = u_step
+        end
+
+        return u_c
+    end
+
+    """
     `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::JVecF; mask = [1,1,1], verbose = 0)`
 
     Fit a crack tip using displacements from `Crackcode.BoundaryConditions.u_cle` using a least square method.
@@ -936,66 +991,6 @@ function fix_neighbourlist(atoms, bonds_list)
     set_transient!(atoms, (:nlist, cutoff(atoms.calc)), nlist, Inf)
 
     return nlist
-end
-
-"""
-`hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})`
-
-Calculate the corrected displacements, from solving `H \\ g`.
-
-### Arguments:
-- `u::JVecsF` : initial displacements
-- `H::SparseMatrixCSC{Float64,Int64}` : hessian, ie `H = hessian(atoms)`
-- `g::Array{Float64}` : gradient, ie `g = gradient(atoms)`
-- `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient where calculated on
-
-### Returns
-- `u_c::JVecsF` : corrected displacements
-"""
-function hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})
-
-    u_c = mat(u)[:]
-    u_c[idof] -=  H \ g
-    u_c = vecs(u_c)
-
-    return u_c
-end
-
-"""
-`hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)`
-
-Calculate the corrected displacements on an atoms objects, from solving `H \\ g`,
-where `H = hessian(atoms)` and `g = gradient(atoms)`.
-Function is able to perform multiple hessian correction steps
-
-### Arguments:
-- `atoms::Atoms` : atoms object
-- `u::JVecsF` : initial displacements
-- `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient where calculated on
-### Optional Arguments:
-- `H = nothing`: provide hessian (fixed for all steps), defaults to calculating hessian of atoms object for each step
-- `steps = 1`: number of hessian correction steps to compute
-### Returns
-- `u_c::JVecsF` : corrected displacements
-"""
-function hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)
-
-    u_c = JVecsF([])
-    u_step = u # for step == 1
-
-    for step in 1:steps
-        pos_original = get_positions(atoms)
-        set_positions!(atoms, pos_original + u_step)
-
-        if H == nothing H = hessian(atoms) end
-        g = gradient(atoms)
-        u_step = hessian_correction(u_step, H, g, idof)
-
-        set_positions!(atoms, pos_original) # revert to original positions
-        u_c = u_step
-    end
-
-    return u_c
 end
 
 """
