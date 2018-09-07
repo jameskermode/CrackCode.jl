@@ -1,6 +1,6 @@
 module BoundaryConditions
 
-    using JuLIP: JVecF, Atoms, set_positions!, get_positions, dofs
+    using JuLIP: JVecF, JVecsF, Atoms, set_positions!, get_positions, dofs
     using LsqFit: curve_fit
     using StaticArrays: SVector
 
@@ -939,64 +939,59 @@ function fix_neighbourlist(atoms, bonds_list)
 end
 
 """
-`hessian_correction(u, H, f, Idof)`
+`hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})`
 
-Calculate the corrected displacements, from solving H \ f.
-# Returns
-- `u_c`: corrected displacements
-# Arguments:
-- `u`: initial displacements
-- `H`: hessian
-- `f`: forces
-- `Idof`: degrees of freedom
+Calculate the corrected displacements, from solving `H \\ g`.
+
+### Arguments:
+- `u::JVecsF` : initial displacements
+- `H::SparseMatrixCSC{Float64,Int64}` : hessian, ie `H = hessian(atoms)`
+- `g::Array{Float64}` : gradient, ie `g = gradient(atoms)`
+- `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient where calculated on
+
+### Returns
+- `u_c::JVecsF` : corrected displacements
 """
-function hessian_correction(u, H, f, Idof)
+function hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})
 
-    u_c = mat(copy(u))[:]
-    f_c = mat(copy(f))[:]
-
-    u_c[Idof] -= H[Idof, Idof] \ -f_c[Idof]
-
+    u_c = mat(u)[:]
+    u_c[idof] -=  H \ g
     u_c = vecs(u_c)
 
     return u_c
 end
 
 """
-`hessian_correction(atoms::AbstractAtoms, u, Idof; H = nothing, steps = 1)`
+`hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)`
 
-Calculate the corrected displacements on an atoms objects, from solving H \ f.
-Able to perform multiple hessian correction steps
+Calculate the corrected displacements on an atoms objects, from solving `H \\ g`,
+where `H = hessian(atoms)` and `g = gradient(atoms)`.
+Function is able to perform multiple hessian correction steps
 
-# Returns
-- `u_step`: corrected displacements
-# Arguments:
-- `atoms`: atoms object
-- `u`: initial displacements (Cartesian)
-- `Idof`: degrees of freedom #Fix this: not ideal to have cartensian and dof vector
-## Optional Arguments:
-- `H = nothing`: provide hessian, defaults to calculating hessian of atoms object
+### Arguments:
+- `atoms::Atoms` : atoms object
+- `u::JVecsF` : initial displacements
+- `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient where calculated on
+### Optional Arguments:
+- `H = nothing`: provide hessian (fixed for all steps), defaults to calculating hessian of atoms object for each step
 - `steps = 1`: number of hessian correction steps to compute
+### Returns
+- `u_c::JVecsF` : corrected displacements
 """
-function hessian_correction(atoms::AbstractAtoms, u, Idof; H = nothing, steps = 1)
+function hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)
 
-    u_c = []
+    u_c = JVecsF([])
     u_step = u # for step == 1
 
     for step in 1:steps
-
         pos_original = get_positions(atoms)
         set_positions!(atoms, pos_original + u_step)
 
-        if H == nothing
-            H = hessian(atoms)
-        end
-        f = forces(atoms)
+        if H == nothing H = hessian(atoms) end
+        g = gradient(atoms)
+        u_step = hessian_correction(u_step, H, g, idof)
 
-        u_step = hessian_correction(u_step, H, f, Idof)
-
-        set_positions!(atoms, pos_original)
-
+        set_positions!(atoms, pos_original) # revert to original positions
         u_c = u_step
     end
 
