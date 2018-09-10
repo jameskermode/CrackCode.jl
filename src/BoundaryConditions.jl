@@ -1,6 +1,6 @@
 module BoundaryConditions
 
-    using JuLIP: JVecF, JVecsF, Atoms, set_positions!, get_positions, dofs
+    using JuLIP: JVecF, JVecsF, mat, Atoms, set_positions!, get_positions, dofs
     using LsqFit: curve_fit
     using StaticArrays: SVector
 
