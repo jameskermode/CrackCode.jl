@@ -328,7 +328,7 @@ module ManAtoms
             end
         end       
         atoms_s = deepcopy(atoms)*(Int.(ceil.(n)))
-        println("Produced cell: ", get_cell(atoms_s))
+        info("Produced cell: ", get_cell(atoms_s))
         
         return atoms_s
     end
