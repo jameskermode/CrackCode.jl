@@ -618,9 +618,9 @@ module BoundaryConditions
                 plot_bonds(atoms, across_crack, label = "pairs: across crack")
                 plot_bonds(atoms, next_pairs, colour="red", label = "pairs: next")
                 t_x = tip[1] ; t_y = tip[2]
-                plot(t_x, t_y, "o", markersize = 4, label = "tip")
+                plot(t_x, t_y, "o", markersize = 4, label = "tip : target")
                 tf_x = tip_f[1] ; tf_y = tip_f[2]
-                plot(tf_x, tf_y, "o", markersize = 4, label = "tip")
+                plot(tf_x, tf_y, "o", markersize = 4, label = "tip : fitted")
                 title("K : $(round(K, 7))")
                 axis(box_around_point([t_x, t_y], [10,10]))
                 legend()
