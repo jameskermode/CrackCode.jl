@@ -494,6 +494,7 @@ module BoundaryConditions
     using Logging
     using ..Plot: plot_atoms, plot_bonds, box_around_point
     using ..Potentials: potential_energy
+    using ..ManAtoms: atoms_subsystem
     using PyPlot: figure, plot, title, axis, legend, vlines, hlines, scatter, xlabel, ylabel, savefig
     """
     `find_k(atoms::Atoms, atoms_dict::Dict, initial_K::Float64, tip::JVecF, 
@@ -658,7 +659,8 @@ module BoundaryConditions
         if Logging.configure().level == DEBUG
             figure()
             r = collect(linspace(bond_length*0.8, cutoff(atoms.calc)*1.2, 100))
-            pe = potential_energy(atoms, atoms.calc, r)
+            atoms_pe = Atoms(CrackCode.ManAtoms.atoms_subsystem(ASEAtoms(atoms), [1,2]))
+            pe = potential_energy(atoms_pe, atoms.calc, r)
             plot(r, pe, color = "b", label = "simple dimer potential")
             xlabel("Dimer Separation Distance, r")
             ylabel("Energy, eV")
