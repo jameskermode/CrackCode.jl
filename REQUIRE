@@ -2,7 +2,7 @@ julia 0.6
 StaticArrays
 JuLIP 
 ASE
-ConstrainedOptim
+Optim
 LsqFit
 Logging
 SciScriptTools

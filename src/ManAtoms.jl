@@ -5,8 +5,7 @@ module ManAtoms
 
     using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!, get_cell
     using ASE: ASEAtoms
-    using ConstrainedOptim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize
-    using Optim: Options
+    using Optim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize, Options
     using ForwardDiff #using ForwardDiff: hessian
 
     export seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,

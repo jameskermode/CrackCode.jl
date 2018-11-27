@@ -28,7 +28,6 @@ module setup_docker
 
         # Logging and SciScriptTools already obtained
         use_package("ASE", repo = "https://github.com/libAtoms/ASE.jl")
-        use_package("ConstrainedOptim", repo = "https://github.com/JuliaNLSolvers/ConstrainedOptim.jl.git")
         use_package("LsqFit")
 
     end
