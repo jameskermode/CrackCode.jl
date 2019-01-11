@@ -4,9 +4,9 @@
 module Plot
 
     using JuLIP: JVecF, Atoms, get_positions, mat, get_cell
-    using PyPlot: plot, scatter, axis, vlines, hlines, legend, title
+    using PyPlot: plot, subplots, scatter, axis, vlines, hlines, legend, title
 
-    export plot_next_bond_along, plot_atoms, plot_bonds, box_around_point
+    export plot_next_bond_along, plot_atoms, plot_bonds, box_around_point, plot_mask
 
     """
     `plot_next_bond_along(atoms::Atoms, tip::JVecF, across_crack_behind::Array{Tuple{Int, Int}}, 
@@ -31,6 +31,31 @@ module Plot
         axis(box_around_point([tip[1], tip[2]], [2.5*dis,2.5*dis]))
         legend()
     end
+
+    """
+    `plot_mask(atoms::Atoms, mask::Array{Bool}; dim::Symbol=:x)`
+
+    ### Arguments
+    - `atoms` : Atoms object
+    - `mask` : boolean matrix 3xN
+
+    ### Optional Arguments
+    - `dim=:x` : dimension of mask to plot, either :x, :y or :z
+    """
+    function plot_mask(atoms::Atoms, mask::Array{Bool}; dim::Symbol=:x)
+
+        dim_labels = [:x, :y, :z]
+        i = find(dim .== dim_labels)[1]
+
+        fig, ax = subplots(1,1)
+        plot_atoms(atoms, indices=find(mask[i,:] .== true), colour="green", label="free")
+        plot_atoms(atoms, indices=find(mask[i,:] .== false), colour="red", label="clamped")
+        ax[:legend]()
+        ax[:set_title]("mask axis: $(dim)")
+
+        return fig, ax
+    end
+
 
 # Old code
 
