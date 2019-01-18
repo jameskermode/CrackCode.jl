@@ -16,5 +16,10 @@ using JuLIP: bulk
         @test ad.atoms == atoms
         @test ad.dict == dict
 
+        # generation, optional arguments
+        ad = AtomsD(atoms=atoms, dict=dict)
+        @test ad.atoms == atoms
+        @test ad.dict == dict
+
     end
 end

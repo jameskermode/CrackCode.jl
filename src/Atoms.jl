@@ -13,7 +13,7 @@ module Atoms
     """
     `AtomsD(;atoms::Atoms=Atoms(), dict::Dict=Dict{Any, Any}())`
 
-    ### Optional Arguements
+    ### Optional Arguments
     - ``atoms::Atoms=Atoms()` : JuLIP Atoms object, default empty Atoms object
     - `dict::Dict=Dict{Any, Any}()` : assoicated dictionary, default empty dictionary
 
