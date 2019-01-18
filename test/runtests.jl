@@ -9,5 +9,4 @@ end
 using Base.Test
 using CrackCode
 
-include("Atoms.jl")
 include("ManAtoms.jl")

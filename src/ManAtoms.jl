@@ -3,13 +3,56 @@
 
 module ManAtoms
 
+    using JSON: parsefile, print
     using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!, get_cell
-    using ASE: ASEAtoms
+    using ASE: ASEAtoms, read_xyz, write_xyz
     using Optim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize, Options
     using ForwardDiff #using ForwardDiff: hessian
 
-    export seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,
+    export AtomsD, read_AtomsD, write_AtomsD,
+                seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,
                 radial_indices, generate_system, generate_radial_system
+
+    # object to hold JuLIP.Atoms object and assoicated dictionary to hold any data
+    # tried to extend JuLIP Atoms object by overloading(?) it, but could not get it to work, might not be possible
+    mutable struct AtomsD{Atoms, Dict}
+        atoms::Atoms
+        dict::Dict
+    end
+
+    """
+    `AtomsD(;atoms::Atoms=Atoms(), dict::Dict=Dict{Any, Any}())`
+
+    ### Optional Arguments
+    - ``atoms::Atoms=Atoms()` : JuLIP Atoms object, default empty Atoms object
+    - `dict::Dict=Dict{Any, Any}()` : assoicated dictionary, default empty dictionary
+
+    Group JuLIP.Atoms objects and dictionary into one object
+    """
+    AtomsD(;atoms=Atoms(), dict=Dict{Any, Any}()) = AtomsD(atoms, dict)
+
+    """
+    `read_AtomsD(filepath::AbstractString)`
+
+    Read a xyz and json into a AtomsD object.
+    """
+    function read_AtomsD(filename::AbstractString)
+        # ASE.read_xyz, gives a ASEAtoms object
+        # convert to JuLIP Atoms object
+        a = Atoms(read_xyz(string(filename, ".xyz")))
+        d = parsefile(string(filename, ".json"))
+        return AtomsD(atoms=a, dict=d)
+    end
+
+    function write_AtomsD(atomsd::AtomsD, filename::AbstractString)
+        # convert to JuLIP Atoms object
+        write_xyz(string(filename, ".xyz"), ASEAtoms(atomsd.atoms))
+        # output json file
+        json_file = open(string(filename, ".json") , "w")
+        print(json_file, atomsd.dict)
+        close(json_file)
+        return 0
+    end
 
     """
     `separation(atoms::Atoms, i::Int, j::Int) `

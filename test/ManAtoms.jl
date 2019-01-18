@@ -1,15 +1,43 @@
 # Tests for ManAtoms.jl
 
 using Base.Test
-using CrackCode.ManAtoms: separation, do_w_mod_pos
+using CrackCode.ManAtoms: AtomsD, write_AtomsD, read_AtomsD, separation, do_w_mod_pos
 using JuLIP: mat, vecs, AbstractAtoms, Atoms, positions, set_positions!,
             set_cell!, set_pbc!, set_calculator!, get_positions, forces
-
+using ASE: ASEAtoms
 
 using JuLIP: bulk, get_positions # test separation
 
 # newer test set 
 @testset "ManAtoms" begin
+    @testset "AtomsD" begin
+
+        # setup
+        atoms = bulk(:Si)
+        dict = Dict("a" => 5)
+
+        # generation
+        ad = AtomsD(atoms, dict)
+        @test ad.atoms == atoms
+        @test ad.dict == dict
+
+        # generation, optional arguments
+        ad = AtomsD(atoms=atoms, dict=dict)
+        @test ad.atoms == atoms
+        @test ad.dict == dict
+
+        # I/O
+        # write
+        filename = "test"
+        i = write_AtomsD(ad, filename)
+        @test i == 0
+        # read
+        ad_r = read_AtomsD("test")
+        @test ad_r.atoms == atoms
+        @test ad_r.dict == dict
+
+    end
+
     @testset "separation" begin
         
         # setup

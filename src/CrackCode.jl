@@ -5,7 +5,6 @@ module CrackCode
 export AtomsD
 
 include("IO.jl")
-include("Atoms.jl")
 include("Plot.jl")
 include("ManAtoms.jl")
 include("Potentials.jl")
