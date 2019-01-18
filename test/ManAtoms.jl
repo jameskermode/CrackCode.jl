@@ -40,17 +40,12 @@ end
 
 
 
-atoms = Atoms("Si2")
+atoms = bulk(:Si)
 set_cell!(atoms, 10.0*eye(3))
 set_pbc!(atoms, true)
-pos = mat(get_positions(atoms))
-sep = 0.8
-pos[1,1] += -sep/2
-pos[1,2] += +sep/2
-pos = vecs(pos)
-set_positions!(atoms, pos)
+pos = get_positions(atoms)
 
-r0 = 1.0
+r0 = 2.0
 lj_spline = JuLIP.Potentials.lennardjones(r0=r0, e0=0.01, rcut = (1.0*r0, 1.2*r0))
 set_calculator!(atoms, lj_spline)
 
@@ -75,21 +70,13 @@ pos_mod = vecs(pos_mod)
         @test forces(atoms) != do_w_mod_pos(forces, atoms, pos_mod)
         @test forces(atoms) == do_w_mod_pos(forces, atoms, pos)
 
-        # Hard coded numbers for LJ potential above - probably not a great idea!
-        # If these fail, something with the potential has likely changed
-        @test norm(maximum(do_w_mod_pos(forces, atoms, pos_mod))) < 17808.15124511724 * (1 + 1e-15)
-        @test norm(maximum(do_w_mod_pos(forces, atoms, pos_mod))) > 17808.15124511724 * (1 - 1e-15)
-        @test norm(maximum(forces(atoms))) < 1.6105826944112733 * (1 + 1e-15)
-        @test norm(maximum(forces(atoms))) > 1.6105826944112733 * (1 - 1e-15)
-
-
         # test that the positions were reverted back
         @test get_positions(atoms) == pos
     end
 end
 
 # Old code left for reference and eventually clean up
-"""
+#=
 
 # include this folder as code
 current_directory = pwd()
@@ -124,4 +111,4 @@ x, y, z = manatoms.centre_point(atoms)
 
 # not the best test(?) needs bulk() to be working
 @test (x, y, z) == (a0/2, a0/2, a0/2)
-"""
+=#
