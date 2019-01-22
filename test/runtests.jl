@@ -10,3 +10,4 @@ using Base.Test
 using CrackCode
 
 include("ManAtoms.jl")
+include("Potentials.jl")

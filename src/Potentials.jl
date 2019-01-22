@@ -9,18 +9,18 @@ using JuLIP.Potentials
 using ASE
 
     using JuLIP: Atoms, mat, get_positions, set_positions!, set_calculator!, set_constraint!,
-                                FixedCell, energy, forces
+                                FixedCell, energy, forces, cutoff
     using ASE: ASEAtoms
-
+    using SciScriptTools.ArrayProperty: converged_mean
     include("ManAtoms.jl")
 
-    export potential_energy, potential_forces,
+    export potential_energy, potential_forces, cutoff_adjusted,
                 idealbrittlesolid, calc_matscipy_ibs, plot_potential
 
     """
     `potential_energy(atoms::Atoms, potential, r::Array{Float64})`
 
-    Calculate the potential energies of given seperation distances. 
+    Calculate the potential energies of given seperation distances.
     Assumes atoms object is a dimer. Seperation distances are along the x direction.
 
     ### Arguments
@@ -105,6 +105,31 @@ using ASE
     function potential_forces(potential, r::Array{Float64}; cell_size = 30.0)
         atoms = ManAtoms.dimer("H", cell_size = cell_size)
         return potential_forces(atoms, potential, r)
+    end
+
+
+    """
+    `cutoff_adjusted(calc; tol::Float64=1e-6, r_start=0.6)`
+
+    Returns a length at which a potenital can be considered to have zero influence on another particle
+    in a dimer configuration
+    Calculate a separation value, `r[i_c]`, at which, from the potential,
+    a dimer would be considered broken to a tolerance.
+
+    ### Arguments
+    `calc` : calculator
+
+    ### Optional Arguments
+    `tol` : tolerance of the convergence of
+            the difference of the mean potential energy and the potential energy at a certain r
+    """
+    function cutoff_adjusted(calc; tol::Float64=1e-6)
+
+        r = collect(linspace(cutoff(calc)*0.5, cutoff(calc)*2, 1000))
+        pe = potential_energy(calc, r)
+        pe_i_c, i_c = converged_mean(pe, tol = tol)
+
+        return r[i_c]
     end
 
 
