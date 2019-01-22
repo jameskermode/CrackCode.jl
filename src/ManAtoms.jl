@@ -44,6 +44,11 @@ module ManAtoms
         return AtomsD(atoms=a, dict=d)
     end
 
+    """
+    `write_AtomsD(atomsd::AtomsD, filename::AbstractString)`
+
+    From a AtomsD object write xyz and json files.
+    """
     function write_AtomsD(atomsd::AtomsD, filename::AbstractString)
         # convert to JuLIP Atoms object
         write_xyz(string(filename, ".xyz"), ASEAtoms(atomsd.atoms))
