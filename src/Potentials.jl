@@ -121,13 +121,13 @@ using ASE
 
     ### Optional Arguments
     `tol` : tolerance of the convergence of
-            the difference of the mean potential energy and the potential energy at a certain r
+            the difference of the mean forces, near the cutoff, and the force at a certain r
     """
     function cutoff_adjusted(calc; tol::Float64=1e-6)
 
-        r = collect(linspace(cutoff(calc)*0.5, cutoff(calc)*2, 1000))
-        pe = potential_energy(calc, r)
-        pe_i_c, i_c = converged_mean(pe, tol = tol)
+        r = collect(linspace(cutoff(calc)*0.5, cutoff(calc), 1000))
+        pf, _ = potential_forces(calc, r)
+        pe_i_c, i_c = converged_mean(pf, tol = tol)
 
         return r[i_c]
     end
