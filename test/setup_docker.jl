@@ -29,6 +29,10 @@ module setup_docker
         # Logging and SciScriptTools already obtained
         use_package("ASE", repo = "https://github.com/libAtoms/ASE.jl")
         use_package("LsqFit")
+        use_package("StaticArrays")
+        use_package("JuLIP")
+        use_package("Optim")
+        use_package("PyPlot")
 
     end
 
