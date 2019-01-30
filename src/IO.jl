@@ -15,9 +15,17 @@ module IO
     "Read in both .xyz and associated json files"
     function read_xyzjson(filename::AbstractString)
 
-        # look for the json file as there is only one json file for each system R
-        file_str = find_files(filename, suffix="json")
-        [file_str[i] = splitext(file_str[i])[1] for i in 1:length(file_str)]
+        # find and extract just the filenames
+        function get_filenames(filename::AbstractString, format::AbstractString)
+            list_f = find_files(filename, suffix=format)
+            list_n = [splitext(basename(list_f[i]))[1] for i in 1:length(list_f)]
+            return list_n
+        end
+
+        # look for the json files and xyz files, find pairs with the same name
+        files_jsons = get_filenames(filename, ".json")
+        files_xyzs  = get_filenames(filename, ".xyz")
+        file_str = intersect(files_jsons, files_xyzs)
         info(@sprintf("reading in: %s .xyz and .json", file_str))
 
         atoms_a = Array{Atoms}(length(file_str)) # array of atoms objects
