@@ -18,7 +18,7 @@ module IO
         # find and extract just the filenames
         function get_filenames(filename::AbstractString, format::AbstractString)
             list_f = find_files(filename, suffix=format)
-            list_n = [splitext(basename(list_f[i]))[1] for i in 1:length(list_f)]
+            list_n = [splitext(list_f[i])[1] for i in 1:length(list_f)]
             return list_n
         end
 
