@@ -6,7 +6,6 @@ module IO
 
     using JuLIP: JVecs, AbstractAtoms, Atoms, get_positions, set_positions!
     using SciScriptTools.IO: find_files
-    using SciScriptTools.Conversion: dict_convert_keys
     using ASE: ASEAtoms, read_xyz, write_xyz
     using JSON: parsefile, print
     using Logging: info
@@ -28,13 +27,7 @@ module IO
             atoms_dict_a[i] = parsefile(string(file_str[i], ".json"))
         end
 
-        # in dictionary convert string to symbols
-        for i in 1:length(atoms_dict_a)
-            atoms_dict_a[i] = dict_convert_keys(atoms_dict_a[i])
-        end
-
-        if length(atoms_a) == 1
-            return atoms_a[1], atoms_dict_a[1] end
+        if length(atoms_a) == 1 return atoms_a[1], atoms_dict_a[1] end
         return atoms_a, atoms_dict_a
     end
 
