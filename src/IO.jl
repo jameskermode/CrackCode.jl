@@ -10,7 +10,7 @@ module IO
     using JSON: parsefile, print
     using Logging: info
 
-    export write, read_xyzjson, write_xyzjson, write_json
+    export write, read_xyzjson, write_xyzjson
 
     "Read in both .xyz and associated json files"
     function read_xyzjson(filename::AbstractString)
@@ -49,15 +49,6 @@ module IO
         print(json_file, atoms_dict)
         close(json_file)
 
-        return 0
-    end
-
-    "Write a dictionary to a json file"
-    function write_json(filename::AbstractString, dict::Dict)
-
-        json_file = open(filename, "w")
-        print(json_file, dict)
-        close(json_file)
         return 0
     end
 
