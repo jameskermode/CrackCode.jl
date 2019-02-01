@@ -495,6 +495,7 @@ module BoundaryConditions
     using ..Plot: plot_atoms, plot_bonds, box_around_point
     using ..Potentials: potential_energy
     using ..ManAtoms: atoms_subsystem
+    using ASE: ASEAtoms
     using PyPlot: figure, plot, title, axis, legend, vlines, hlines, scatter, xlabel, ylabel, savefig
     """
     `find_k(atoms::Atoms, atoms_dict::Dict, initial_K::Float64, tip::JVecF, 
@@ -625,6 +626,8 @@ module BoundaryConditions
                 title("K : $(round(K, 7))")
                 axis(box_around_point([t_x, t_y], [10,10]))
                 legend()
+                savefig(joinpath(output_dir, "debug_system_tip.pdf"))
+                close()
             end
 
             # ideal situation
@@ -659,7 +662,7 @@ module BoundaryConditions
         if Logging.configure().level == DEBUG
             figure()
             r = collect(linspace(bond_length*0.8, cutoff(atoms.calc)*1.2, 100))
-            atoms_pe = Atoms(CrackCode.ManAtoms.atoms_subsystem(ASEAtoms(atoms), [1,2]))
+            atoms_pe = Atoms(atoms_subsystem(ASEAtoms(atoms), [1,2]))
             pe = potential_energy(atoms_pe, atoms.calc, r)
             plot(r, pe, color = "b", label = "simple dimer potential")
             xlabel("Dimer Separation Distance, r")
@@ -675,6 +678,7 @@ module BoundaryConditions
             title("Simple Dimer Overlayed with Length Tolerances")
             legend()
             savefig(joinpath(output_dir, "debug_dimer_overlayed_with_length_tolerances.pdf"))
+            close()
         end   
 
         # plot difference for given tip and fitted tip
@@ -688,6 +692,7 @@ module BoundaryConditions
             title("Tip Movement Convergence")
             legend()
             savefig(joinpath(output_dir, "debug_tip_movement_convergence.pdf"))
+            close()
         end
 
         # plot sum of separations of next_pairs and across crack
@@ -706,6 +711,7 @@ module BoundaryConditions
             title("Optimal Sum of Separation of next_pairs wrt K and tip")
             legend()
             savefig(joinpath(output_dir, "debug_optimal_separation_of_next_pairs.pdf"))
+            close()
 
             figure()
             x = mat(tip_fs)[1,:]
@@ -721,6 +727,7 @@ module BoundaryConditions
             title("Minimum Sum of Separation of across_crack wrt K and tip")
             legend()
             savefig(joinpath(output_dir, "debug_minimum_separation_of_across_crack.pdf"))
+            close()
         end  
 
         if length(points)-1 == maxsteps @printf "maxsteps: %d reached\n" maxsteps end
