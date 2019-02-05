@@ -658,6 +658,9 @@ module BoundaryConditions
 
         end
 
+        cons_its = length(find(tip_diffs .< tip_tol))
+        @sprintf("tip convergenced to be within the tiptolerance for past %s iterations \n", cons_its)
+
         # plot simple potenital (using dimer) with length tolerances
         if Logging.configure().level == DEBUG
             figure()
