@@ -8,7 +8,7 @@ module BoundaryConditions
                 intersection_line_plane_types, filter_crack_bonds, find_next_bonds_along, find_k, filter_pairs_indices
 
     """
-    `u_cle(atoms::Atoms, tip, K, E, nu) `
+    `u_cle(pos::JVecsF, tip::JVecF, K::Float64, E::Float64, nu::Float64)`
 
     Displacement field, Continuum Linear Elastic solution. Returns displacements in cartesian coordinates.
 
@@ -21,13 +21,13 @@ module BoundaryConditions
     where the formula for `kappa` is the one for plane strain (plane stress is different).
     
     ### Arguments
-    - `atoms::Atoms` or `pos::Array{JVecF}`
+    - `atoms::Atoms` or `pos::JVecsF`
     - tip : JVecF
     - K : stress intensity factor
     - E : Youngs modulus
     - nu : Poisson ratio
     """
-    function u_cle(pos::Array{JVecF}, tip::JVecF, K, E, nu)
+    function u_cle(pos::JVecsF, tip::JVecF, K::Float64, E::Float64, nu::Float64)
 
         pos = mat(pos .- [tip])
         x = pos[1,:]
@@ -44,7 +44,7 @@ module BoundaryConditions
 
         return vecs([ux'; uy'; uz'])
     end
-    u_cle(atoms::Atoms, tip::JVecF, K, E, nu) = u_cle(get_positions(atoms), tip, K, E, nu)
+    u_cle(atoms::Atoms, tip::JVecF, K::Float64, E::Float64, nu::Float64) = u_cle(get_positions(atoms), tip, K, E, nu)
 
     """
     `hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})`
