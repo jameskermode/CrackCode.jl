@@ -12,7 +12,12 @@ module IO
 
     export write, read_xyzjson, write_xyzjson
 
-    "Read in both .xyz and associated json files"
+    """
+    Read in both .xyz and associated json files
+
+    ### Arguments
+    filename::AbstractString : filename without file extensions
+    """
     function read_xyzjson(filename::AbstractString)
 
         # find and extract just the filenames
@@ -39,6 +44,14 @@ module IO
         return atoms_a, atoms_dict_a
     end
 
+    """
+    Write both .xyz and associated json files
+
+    ### Arguments
+    filename::AbstractString : filename without file extensions
+    atoms::Atoms : JuLIP Atoms object
+    atoms_dict::Dict : associated dictionary
+    """
     function write_xyzjson(filename::AbstractString, atoms::Atoms, atoms_dict::Dict)
 
         info(@sprintf("writing: %s .xyz and .json", filename))
