@@ -502,7 +502,7 @@ module BoundaryConditions
     using ASE: ASEAtoms
     using PyPlot: figure, plot, title, axis, legend, vlines, hlines, scatter, xlabel, ylabel, savefig
     """
-    `find_k(atoms::Atoms, atoms_dict::Dict, initial_K::Float64, tip::JVecF, 
+    `find_k(atoms::Atoms, pos_cryst::JVecsF, E::Float64, nu::Float64, initial_K::Float64, tip::JVecF,
                         bond_length::Float64, separation_length::Float64, 
                         next_pairs::Array{Tuple{Int, Int}}, across_crack::Array{Tuple{Int, Int}};
                         tip_tol::Float64 = 0.01, bond_length_tol::Float64 = 0.2, separation_tol::Float64 = 0.05, 
@@ -513,7 +513,9 @@ module BoundaryConditions
 
     ### Arguments
     - `atoms::Atoms`
-    - `atoms_dict::Dict`
+    - `pos_cryst`::JVecsF : crystal positions
+    - `E::Float64` : Youngs modulus
+    - `nu::Float64` : Poisson ratio
     - `initial_K::Float64` : starting guess K # or K_to_u0.ipynb"
     - `tip::JVecF` : crack tip position, where it should exist
     - `bond_length::Float64` : (normal bulk) bond length
@@ -536,13 +538,12 @@ module BoundaryConditions
     - `u_min::JVecsF` : minimised displacement field at chosen K
 
     """
-    function find_k(atoms::Atoms, atoms_dict::Dict, initial_K::Float64, tip::JVecF, 
+    function find_k(atoms::Atoms, pos_cryst::JVecsF, E::Float64, nu::Float64, initial_K::Float64, tip::JVecF,
                             bond_length::Float64, separation_length::Float64, 
                             next_pairs::Array{Tuple{Int, Int}}, across_crack::Array{Tuple{Int, Int}};
                             tip_tol::Float64 = 0.01, bond_length_tol::Float64 = 0.2, separation_tol::Float64 = 0.05, 
                             maxsteps::Int = 10, output_dir::String = "nothing")
 
-        pos_cryst = get_positions(atoms)
         points = Array{Float64}([initial_K])
         K = points[length(points)]
         u_i = nothing
@@ -562,11 +563,10 @@ module BoundaryConditions
             passes = 0
             dir_next = 0
             K = points[length(points)]
-            atoms_dict[:K] = K  # for use in fit_crack_tip_displacements()
 
             @printf "--- trying K: %.7f \n" K
             set_positions!(atoms, pos_cryst)
-            u_i = u_cle(atoms, tip, K, atoms_dict[:E], atoms_dict[:nu])
+            u_i = u_cle(atoms, tip, K, E, nu)
             set_positions!(atoms, pos_cryst + u_i)
             minimise!(atoms, precond=Exp(atoms, r0=bond_length)) # improvement: should try pass this in
             u_min = get_positions(atoms) - pos_cryst
@@ -574,7 +574,7 @@ module BoundaryConditions
             # main condition for determining search for K
             # fit crack tip (in x and y) to compare later
             tip_f = nothing
-            tip_f = fit_crack_tip_displacements(atoms, atoms_dict, tip, mask=[1,1,0])
+            tip_f = fit_crack_tip_displacements(atoms, pos_cryst, K, E, nu, tip, mask=[1,1,0])
             tip_diff_x = abs(tip[1] - tip_f[1])
             @printf "Difference in given tip and fitted tip in x %.7f\n" tip_diff_x
             if tip_diff_x <= tip_tol
