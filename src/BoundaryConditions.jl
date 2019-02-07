@@ -102,19 +102,23 @@ module BoundaryConditions
     end
 
     """
-    `fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::JVecF; mask = [1,1,1], verbose = 0)`
+    `fit_crack_tip_displacements(atoms::Atoms, pos_cryst::JVecsF, K::Float64, E::Float64, nu::Float64, tip_g::JVecF;
+                                                        mask = [1,1,1], verbose = 0)`
 
     Fit a crack tip using displacements from `Crackcode.BoundaryConditions.u_cle` using a least square method.
     Return the fitted crack tip.
 
     ### Arguments
     - `atoms::Atoms`
-    - `atoms_dict` : should contain :pos_cryst, :K, :E and :nu
+    - `pos_cryst`::JVecsF : crystal positions
+    - `K::Float64` : stress intensity factor
+    - `E::Float64` : Youngs modulus
+    - `nu::Float64` : Poisson ratio
     - `tip_g::JVecF` : inital guess for tip position
     - `mask = [1,1,1]` : mask which dimensions, [x,y,z], to fit in/vary  
     - `verbose = 0` : `verbose = 1` returns fitted tip and (`LsqFit.curve_fit`) fit object 
     """
-    function fit_crack_tip_displacements(atoms::Atoms, atoms_dict, tip_g::JVecF; 
+    function fit_crack_tip_displacements(atoms::Atoms, pos_cryst::JVecsF, K::Float64, E::Float64, nu::Float64, tip_g::JVecF;
                                                                         mask = [1,1,1], verbose = 0)
         
         # function which gives new displacements based on a new tip
@@ -126,12 +130,12 @@ module BoundaryConditions
             tip_p = tip_g + JVecF(pm)
 
             # calculate new displacements using new tip
-            set_positions!(atoms, atoms_dict[:pos_cryst]) 
-            u_g = u_cle(atoms, tip_p, atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu]) 
+            set_positions!(atoms, pos_cryst)
+            u_g = u_cle(atoms, tip_p, K, E, nu)
             
             # convert to vector format
             dofs_cryst = dofs(atoms)
-            set_positions!(atoms, atoms_dict[:pos_cryst] + u_g)
+            set_positions!(atoms, pos_cryst + u_g)
             dofs_u_g = dofs(atoms) - dofs_cryst
 
             return dofs_u_g 
@@ -142,7 +146,7 @@ module BoundaryConditions
         
         # obtain vectors of final positions to fit against
         dofs_a = dofs(atoms)
-        set_positions!(atoms, atoms_dict[:pos_cryst])
+        set_positions!(atoms, pos_cryst)
         dofs_cryst = dofs(atoms)
         dofs_u = dofs_a - dofs_cryst;
 
@@ -163,8 +167,8 @@ module BoundaryConditions
         pm[find(mask .== 1)] = p # where the p values should exist in a full dimension array
         tip_f = tip_g + JVecF(pm)
         
-        u_orig = pos_orig - atoms_dict[:pos_cryst]
-        u_fit = u_cle(atoms, tip_f , atoms_dict[:K], atoms_dict[:E], atoms_dict[:nu])
+        u_orig = pos_orig - pos_cryst
+        u_fit = u_cle(atoms, tip_f , K, E, nu)
         @printf("max(norm.('given' u positions - u fit)): %.1e \n", maximum(norm.(u_orig - u_fit)))
         
         # restore original atom positions
