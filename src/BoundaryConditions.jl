@@ -564,11 +564,12 @@ module BoundaryConditions
             dir_next = 0
             K = points[length(points)]
 
-            @printf "--- trying K: %.7f \n" K
+            info(@sprintf("--- trying K: %.7f ", K))
             set_positions!(atoms, pos_cryst)
             u_i = u_cle(atoms, tip, K, E, nu)
             set_positions!(atoms, pos_cryst + u_i)
-            minimise!(atoms, precond=Exp(atoms, r0=bond_length)) # improvement: should try pass this in
+            res = minimise!(atoms, precond=Exp(atoms, r0=bond_length)) # improvement: should try pass this in
+            info(res)
             u_min = get_positions(atoms) - pos_cryst
 
             # main condition for determining search for K
@@ -576,9 +577,9 @@ module BoundaryConditions
             tip_f = nothing
             tip_f = fit_crack_tip_displacements(atoms, pos_cryst, K, E, nu, tip, mask=[1,1,0])
             tip_diff_x = abs(tip[1] - tip_f[1])
-            @printf "Difference in given tip and fitted tip in x %.7f\n" tip_diff_x
+            info(@sprintf("Difference in given tip and fitted tip in x %.7f", tip_diff_x))
             if tip_diff_x <= tip_tol
-                @printf "fitted tip is within tolerance\n"
+                info("fitted tip is within tolerance")
                 passes += 1
             end
             push!(tip_fs, tip_f)
@@ -593,7 +594,7 @@ module BoundaryConditions
             debug("Min separation of across_crack: ", minimum(seps_u_min))
             # they should all be open
             if length(seps_open) == length(across_crack) 
-                @printf "across crack pairs are all open\n"
+                info("across crack pairs are all open")
                 passes += 1
             end
 
@@ -610,7 +611,7 @@ module BoundaryConditions
 
             # they should all be closed
             if length(seps_next_pairs_closed) == length(next_pairs)
-                @printf "next pairs are all closed\n"
+                info("next pairs are all closed")
                 passes += 1
             end
 
@@ -642,16 +643,16 @@ module BoundaryConditions
 
             # tip bisection search has convergence to be within the tip tolerance for past steps
             if length(find(tip_diffs .< tip_tol)) >= 5
-                @printf "tip convergenced to be within the tiptolerance for past 5 iterations \n"
+                info("tip convergenced to be within the tiptolerance for past 5 iterations")
                 break
             end
 
-            @printf "--- What to do with K?\n"
+            info("--- What to do with K?")
             if (tip[1] - tip_f[1]) > 0.0 dir_next = 1 # if crack is closing up
             elseif (tip[1] - tip_f[1]) < 0.0 dir_next = -1 end #if crack is opening up
 
-            if dir_next == 1 @printf "increasing K for next loop\n"
-            elseif dir_next == -1 @printf "decreasing K for next loop\n" end
+            if dir_next == 1 info("increasing K for next loop")
+            elseif dir_next == -1 info("decreasing K for next loop") end
 
             # search scale increment (when not bisecting)
             bond_safe = bond_length + bond_length_tol
@@ -663,7 +664,7 @@ module BoundaryConditions
         end
 
         cons_its = length(find(tip_diffs .< tip_tol))
-        @sprintf("tip convergenced to be within the tiptolerance for past %s iterations \n", cons_its)
+        info(@sprintf("tip convergenced to be within the tiptolerance for past %s iterations", cons_its))
 
         # plot simple potenital (using dimer) with length tolerances
         if Logging.configure().level == DEBUG
@@ -737,7 +738,7 @@ module BoundaryConditions
             close()
         end  
 
-        if length(points)-1 == maxsteps @printf "maxsteps: %d reached\n" maxsteps end
+        if length(points)-1 == maxsteps info(@sprintf("maxsteps: %d reached", maxsteps)) end
         return K, u_i, u_min
     end
 
