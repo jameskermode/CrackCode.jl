@@ -159,7 +159,7 @@ module BoundaryConditions
         # xdata = zeros(similar(dofs_u)), doesn't really matter, just need a vector of the same length
         # ydata = dofs_u, final positions to match
         fit = curve_fit(model, zeros(similar(dofs_u)), dofs_u, p0)
-        @printf("fit crack tip using displacements - converged: %s \n", fit.converged)
+        info(@sprintf("fit crack tip using displacements - converged: %s", fit.converged))
         
         # map p into an all 3 dimensions array, then add to tip for fitted tip 
         p = fit.param
@@ -169,7 +169,7 @@ module BoundaryConditions
         
         u_orig = pos_orig - pos_cryst
         u_fit = u_cle(atoms, tip_f , K, E, nu)
-        @printf("max(norm.('given' u positions - u fit)): %.1e \n", maximum(norm.(u_orig - u_fit)))
+        info(@sprintf("max(norm.('given' u positions - u fit)): %.1e \n", maximum(norm.(u_orig - u_fit))))
         
         # restore original atom positions
         set_positions!(atoms, pos_orig)
