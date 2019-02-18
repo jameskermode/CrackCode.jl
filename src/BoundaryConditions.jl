@@ -969,7 +969,7 @@ end
 
 u_solution is the displacements from crystal positions such that, the free atoms given
 
-Returns seperation of pair of atoms.
+Returns separation of pair of atoms.
 # Returns
 - `u_sol`: corrected and relaxed displacements
 # Arguments

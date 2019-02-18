@@ -20,13 +20,13 @@ using ASE
     """
     `potential_energy(atoms::Atoms, potential, r::Array{Float64})`
 
-    Calculate the potential energies of given seperation distances.
-    Assumes atoms object is a dimer. Seperation distances are along the x direction.
+    Calculate the potential energies of given separation distances.
+    Assumes atoms object is a dimer. separation distances are along the x direction.
 
     ### Arguments
     - atoms::Atoms
     - potential
-    - r::Array{Float64} : seperation distances
+    - r::Array{Float64} : separation distances
 
     ### Other methods
     `potential_energy(potential, r::Array{Float64}; cell_size = 30.0)`
@@ -45,9 +45,9 @@ using ASE
         potential_energies = Array{Float64}(length(r))
         positions = mat(get_positions(atoms))
         for i in 1:length(r)
-            seperation = r[i]
-            positions[1,1] = -seperation/2.0
-            positions[1,2] = +seperation/2.0
+            separation = r[i]
+            positions[1,1] = -separation/2.0
+            positions[1,2] = +separation/2.0
             set_positions!(atoms, positions)
             potential_energies[i] = energy(atoms)
         end    
@@ -63,15 +63,15 @@ using ASE
     """
     `potential_forces(atoms::Atoms, potential, r::Array{Float64})`
 
-    Calculate the forces of given seperation distances. 
-    Assumes atoms object is a dimer. Seperation distances are along the x direction.
+    Calculate the forces of given separation distances.
+    Assumes atoms object is a dimer. separation distances are along the x direction.
     Returns array of the x component of forces on each atom.
-    
+
 
     ### Arguments
     - atoms::Atoms
     - potential
-    - r::Array{Float64} : seperation distances
+    - r::Array{Float64} : separation distances
 
     ### Other methods
     `potential_forces(potential, r::Array{Float64}; cell_size = 30.0)`
@@ -91,9 +91,9 @@ using ASE
         forces_a1 = Array{Float64}(length(r)); forces_a2 = Array{Float64}(length(r))
         positions = mat(get_positions(atoms))
         for i in 1:length(r)
-            seperation = r[i]
-            positions[1,1] = -seperation/2.0
-            positions[1,2] = +seperation/2.0
+            separation = r[i]
+            positions[1,1] = -separation/2.0
+            positions[1,2] = +separation/2.0
             set_positions!(atoms, positions)
             forces_a1[i] = forces(atoms)[1][1]
             forces_a2[i] = forces(atoms)[2][1] 
@@ -184,7 +184,7 @@ end
 function plot_potential(potential)
 
     # build atoms
-    atoms = manatoms.dimer("Si", seperation=0.8, cell_size=30.0)
+    atoms = manatoms.dimer("Si", separation=0.8, cell_size=30.0)
 
     calc = potential
     set_calculator!(atoms, calc)
@@ -193,15 +193,15 @@ function plot_potential(potential)
     r = linspace(0.4, 2.5, 2000)
     potential_energies = []
     positions = mat(get_positions(atoms))
-    for seperation in r
-      positions[1,1] = -seperation/2.0
-      positions[1,2] = +seperation/2.0
+    for separation in r
+      positions[1,1] = -separation/2.0
+      positions[1,2] = +separation/2.0
       set_positions!(atoms, positions)
       push!(potential_energies, energy(atoms))
     end
 
     plot(r, potential_energies, label="$potential")
-    xlabel("Seperation, r")
+    xlabel("separation, r")
     ylabel("Potential Energy")
     legend()
 

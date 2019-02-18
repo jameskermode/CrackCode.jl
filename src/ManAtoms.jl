@@ -9,7 +9,7 @@ module ManAtoms
     using Optim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize, Options
     using ForwardDiff #using ForwardDiff: hessian
 
-    export seperation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,
+    export separation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,
                 radial_indices, generate_system, generate_radial_system
 
     """
@@ -58,16 +58,16 @@ module ManAtoms
 
 
     """
-    `dimer(element = "H"; seperation = 1.0, cell_size = 30.0)`
+    `dimer(element = "H"; separation = 1.0, cell_size = 30.0)`
 
-    Build a dimer object with specifc seperation and cell size
+    Build a dimer object with specifc separation and cell size
 
     ### Arguments
     - element : chemical element
-    - seperation : distance between atoms along x axis
+    - separation : distance between atoms along x axis
     - cell_size : (same in all directions)
     """
-    function dimer(element = "H"; seperation = 1.0, cell_size = 30.0)
+    function dimer(element = "H"; separation = 1.0, cell_size = 30.0)
 
         a_string = join([element, "2"])
         atoms = Atoms(ASEAtoms(a_string))
@@ -75,8 +75,8 @@ module ManAtoms
         set_pbc!(atoms, true)
         pos = mat(get_positions(atoms))
     
-        pos[1,1] += -seperation/2
-        pos[1,2] += +seperation/2
+        pos[1,1] += -separation/2
+        pos[1,2] += +separation/2
     
         set_positions!(atoms, pos)
     
@@ -117,28 +117,28 @@ module ManAtoms
     - `separations::Array{Float64}` : list of separations
     
     ### Other Usage
-    `move_atom_pair!(atoms::Atoms, pair::Tuple{Int, Int}, seperation::Float64; i_s = 0.5, j_s = 0.5)`
+    `move_atom_pair!(atoms::Atoms, pair::Tuple{Int, Int}, separation::Float64; i_s = 0.5, j_s = 0.5)`
     - `i_s = 0.5` : amount to scale atom 1 position 
     - `j_s = 0.5` : amount to scale atom 2 position 
     """
-    # manually move atom pair to satisfy given seperation
-    function move_atom_pair!(pos::Array{JVecF}, i::Int, j::Int, seperation::Float64; i_s = 0.5, j_s = 0.5)
+    # manually move atom pair to satisfy given separation
+    function move_atom_pair!(pos::Array{JVecF}, i::Int, j::Int, separation::Float64; i_s = 0.5, j_s = 0.5)
         u = pos[j] - pos[i]
-        v = 1.0 - seperation / norm(u)
+        v = 1.0 - separation / norm(u)
         pos[i] += i_s * v * u
         pos[j] -= j_s * v * u
         return pos
     end
-    move_atom_pair!(pos::Array{JVecF}, pair::Tuple{Int, Int}, seperation::Float64; i_s = 0.5, j_s = 0.5) = 
-                                                                move_atom_pair!(pos, pair[1], pair[2], seperation, i_s = i_s, j_s = j_s)   
-    function move_atom_pair!(atoms::Atoms, i::Int, j::Int, seperation::Float64; i_s = 0.5, j_s = 0.5)
+    move_atom_pair!(pos::Array{JVecF}, pair::Tuple{Int, Int}, separation::Float64; i_s = 0.5, j_s = 0.5) = 
+                                                                move_atom_pair!(pos, pair[1], pair[2], separation, i_s = i_s, j_s = j_s)
+    function move_atom_pair!(atoms::Atoms, i::Int, j::Int, separation::Float64; i_s = 0.5, j_s = 0.5)
         pos = get_positions(atoms)
-        pos = move_atom_pair!(pos, i, j, seperation, i_s = i_s, j_s = j_s)
+        pos = move_atom_pair!(pos, i, j, separation, i_s = i_s, j_s = j_s)
         set_positions!(atoms, pos)
         return atoms
     end
-    move_atom_pair!(atoms::Atoms, pair::Tuple{Int, Int}, seperation::Float64; i_s = 0.5, j_s = 0.5) = 
-                                                            move_atom_pair!(atoms, pair[1], pair[2], seperation, i_s = i_s, j_s = j_s)
+    move_atom_pair!(atoms::Atoms, pair::Tuple{Int, Int}, separation::Float64; i_s = 0.5, j_s = 0.5) = 
+                                                            move_atom_pair!(atoms, pair[1], pair[2], separation, i_s = i_s, j_s = j_s)
     
     # atoms and array of pairs and separations    
     function move_atom_pair!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, separations::Array{Float64})
@@ -158,7 +158,7 @@ module ManAtoms
     
             # they are done so skip
             if length(m_1) >= 1 && length(m_2) >= 1
-                warn("Both atoms, ", pairs[i], ", have already been moved - can not satisfy seperation")
+                warn("Both atoms, ", pairs[i], ", have already been moved - can not satisfy separation")
                 continue
             end
     
@@ -173,7 +173,7 @@ module ManAtoms
     end
 
     """
-    `pair_constrained_minimise!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, seperations::Array{Float64}; 
+    `pair_constrained_minimise!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, separations::Array{Float64}; 
                                             s_tol = 1e-3, g_tol = 1e-2)`
 
     Note: Separation distances between atom pairs should initially be satisfied. (Warning is produced)
@@ -187,11 +187,11 @@ module ManAtoms
     ### Arguments
     - `atoms::Atoms`
     - `pairs::Array{Tuple{Int, Int}}` : list of atom pairs
-    - `seperations::Array{Float64}` : list of separation distances
+    - `separations::Array{Float64}` : list of separation distances
     - `s_tol = 1e-3` : separation tolerance
     - `g_tol = 1e-2` : gradient tolerance - Optim optimize option https://github.com/JuliaNLSolvers/Optim.jl/blob/master/docs/src/user/config.md
     """
-    function pair_constrained_minimise!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, seperations::Array{Float64}; 
+    function pair_constrained_minimise!(atoms::Atoms, pairs::Array{Tuple{Int, Int}}, separations::Array{Float64}; 
                                             s_tol = 1e-3, g_tol = 1e-2)
         
         # get associated degrees of freedom for the pairs
@@ -217,7 +217,7 @@ module ManAtoms
         # constraint function
         function con_c!(c, x) 
             for i in 1:length(dofspairs)
-                c[i] = slen(x, dofspairs[i][1], dofspairs[i][2]) - seperations[i]
+                c[i] = slen(x, dofspairs[i][1], dofspairs[i][2]) - separations[i]
             end
             return c
         end
@@ -239,7 +239,7 @@ module ManAtoms
                 q = length(dofspairs[i][2])
                 _i1 = 1:p
                 _i2 = p+1:p+q
-                _cf(x) = norm(x[_i2] - x[_i1]) - seperations[i]
+                _cf(x) = norm(x[_i2] - x[_i1]) - separations[i]
                 h[dofspairjoined[i], dofspairjoined[i]] += 
                                             λ[1] *ForwardDiff.hessian(_cf, x[dofspairjoined[i]])
             end
@@ -574,14 +574,14 @@ function find_tip_coordination(atoms, bondlength, bulk_nn, groups)
     #return bond_1, bond_2
 end
 
-function get_seperation(atoms, index_1, index_2)
+function get_separation(atoms, index_1, index_2)
 
     pos = mat(get_positions(atoms))
     pos_i1 = pos[:,index_1]
     pos_i2 = pos[:,index_2]
-    seperation = sqrt((pos_i1[1]-pos_i2[1])^2 + (pos_i1[2]-pos_i2[2])^2 + (pos_i1[3]-pos_i2[3])^2)
+    separation = sqrt((pos_i1[1]-pos_i2[1])^2 + (pos_i1[2]-pos_i2[2])^2 + (pos_i1[3]-pos_i2[3])^2)
 
-    return seperation
+    return separation
 end
 
 function get_size(atoms)
