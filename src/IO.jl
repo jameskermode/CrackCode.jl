@@ -4,8 +4,8 @@ module IO
 
     import Base.write
 
-    using JuLIP: JVecs, AbstractAtoms, Atoms, get_positions, set_positions!
-    using SciScriptTools.IO: find_files
+    using JuLIP: JVecs, JVecsF, AbstractAtoms, Atoms, get_positions, set_positions!
+    using SciScriptTools.IO: find_files, write_json
     using ASE: ASEAtoms, read_xyz, write_xyz
     using JSON: parsefile, print
     using Logging: info
@@ -62,6 +62,57 @@ module IO
         print(json_file, atoms_dict)
         close(json_file)
 
+        return 0
+    end
+
+    """
+    `read_pos(filename::AbstractString)`
+
+    Read atoms positions stored in a .json file
+    Can be a single set or array of positions
+    """
+    function read_pos(filename::AbstractString)
+
+        d = parsefile(filename)
+        k = collect(keys(d))
+
+        pos = nothing
+        f = 0 # fl
+        for i in 1:length(k)
+            if f == 0
+                try
+                pos = JVecsF(d[k[i]])
+                f = 1
+                catch end
+            end
+            if f == 0
+                try
+                pos = JVecsF.(d[k[i]])
+                f = 1
+                catch end
+            end
+            if f == 0
+                error("Not a valid set of positions or array of positions")
+                return 1
+            end
+
+        end
+        return pos
+    end
+
+    """
+    `write_pos(filename::AbstractString, pos)`
+
+    Write positions, `pos`, to a .json file
+
+    ### Arguments
+    - `filename::AbstractString
+    - `pos`::`JVecsF` or `Array{JVecsF} : positions
+
+    """
+    function write_pos(filename::AbstractString, pos)
+        d = Dict("pos" => pos)
+        write_json(filename, d)
         return 0
     end
 
