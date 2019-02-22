@@ -10,7 +10,7 @@ module IO
     using JSON: parsefile, print
     using Logging: info
 
-    export write, read_xyzjson, write_xyzjson
+    export write, read_xyzjson, write_xyzjson, read_pos, write_pos
 
     """
     Read in both .xyz and associated json files
