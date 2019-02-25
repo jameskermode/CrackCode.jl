@@ -10,7 +10,7 @@ module ManAtoms
     using ForwardDiff #using ForwardDiff: hessian
 
     export separation, systemsize, dimer, atoms_subsystem, mask_atom!, move_atom_pair!, pair_constrained_minimise!,
-                radial_indices, generate_system, generate_radial_system
+                radial_indices, generate_system, generate_radial_system, add_vacuum!
 
     """
     `separation(atoms::Atoms, i::Int, j::Int) `
