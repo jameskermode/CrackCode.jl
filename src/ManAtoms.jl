@@ -4,7 +4,7 @@
 module ManAtoms
 
     using JSON: parsefile, print
-    using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!, get_cell
+    using JuLIP: JVecF, Atoms, get_positions, set_positions!, mat, atomdofs, energy, gradient, hessian, dofs, set_dofs!, get_cell, set_cell!
     using ASE: ASEAtoms, read_xyz, write_xyz
     using Optim: TwiceDifferentiable, TwiceDifferentiableConstraints, IPNewton, optimize, Options
     using ForwardDiff #using ForwardDiff: hessian
@@ -102,6 +102,44 @@ module ManAtoms
         delete!(atoms_sub.po, indices_inverse_py)
 
         return atoms_sub
+    end
+
+    """
+    `add_vacuum!(atoms::Atoms; vacuum_scale::Array{Int}=[2,2,2], 
+                                shift::Bool = false, point_current = nothing, point_after = nothing)`
+
+    Add vacuum to an atoms object.
+    Can also adjust shift of atoms for the new cell.
+    Default is to shift from the old centre point to the new centre point.
+
+    ### Arguments
+    - `atoms::Atoms` : JuLIP Atoms object
+    - `vacuum_scale::Array{Int}=[2,2,2]` : scale vacuum using original cell size, of form [x,y,z]
+    - `shift::Bool = false` : whether to shift the atoms from point a to point b
+    - `point_current = nothing` : point a of shift vector
+    - `point_after = nothing` : point b of shift vector
+    """
+    function add_vacuum!(atoms::Atoms; vacuum_scale::Array{Int}=[2,2,2], 
+                                            shift = false, point_current = nothing, point_after = nothing)
+
+        cell_c = get_cell(atoms)
+
+        # add vacuum by scaling the current cell
+        cell_vac = cell_c .* vacuum_scale
+        set_cell!(atoms, cell_vac)
+
+        # shift atoms
+        if shift == true
+            shift_vec = nothing
+            pos = get_positions(atoms)
+
+            if point_current == nothing point_current = diag(cell_c)/2.0 end
+            if point_after == nothing point_after = diag(cell_vac)/2.0 end
+            shift_vec = point_after - point_current # shift atoms to point
+            set_positions!(atoms, pos .+ [shift_vec])
+        end
+
+        return 0
     end
 
     """
