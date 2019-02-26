@@ -105,7 +105,7 @@ module ManAtoms
     end
 
     """
-    `add_vacuum!(atoms::Atoms; vacuum_scale::Array{Int}=[2,2,2], 
+    `add_vacuum!(atoms::Atoms; vacuum_scale::Array{Float64}=[2.0,2.0,2.0], 
                                 shift::Bool = false, point_current = nothing, point_after = nothing)`
 
     Add vacuum to an atoms object.
@@ -114,12 +114,12 @@ module ManAtoms
 
     ### Arguments
     - `atoms::Atoms` : JuLIP Atoms object
-    - `vacuum_scale::Array{Int}=[2,2,2]` : scale vacuum using original cell size, of form [x,y,z]
+    - `vacuum_scale::Array{Float64}=[2.0,2.0,2.0]` : scale vacuum using original cell size, of form [x,y,z]
     - `shift::Bool = false` : whether to shift the atoms from point a to point b
     - `point_current = nothing` : point a of shift vector
     - `point_after = nothing` : point b of shift vector
     """
-    function add_vacuum!(atoms::Atoms; vacuum_scale::Array{Int}=[2,2,2], 
+    function add_vacuum!(atoms::Atoms; vacuum_scale::Array{Float64}=[2.0,2.0,2.0], 
                                             shift = false, point_current = nothing, point_after = nothing)
 
         cell_c = get_cell(atoms)
