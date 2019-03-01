@@ -6,11 +6,12 @@ module IO
 
     using JuLIP: JVecs, JVecsF, AbstractAtoms, Atoms, get_positions, set_positions!
     using SciScriptTools.IO: find_files, write_json
-    using ASE: ASEAtoms, read_xyz, write_xyz
+    using ASE: ASEAtoms, read_xyz
+    import ASE: write_xyz
     using JSON: parsefile, print
     using Logging: info
 
-    export write, read_xyzjson, write_xyzjson, read_pos, write_pos
+    export write, read_xyzjson, write_xyzjson, read_pos, write_pos, write_xyz
 
     """
     Read in both .xyz and associated json files
@@ -113,6 +114,26 @@ module IO
     function write_pos(filename::AbstractString, pos)
         d = Dict("pos" => pos)
         write_json(filename, d)
+        return 0
+    end
+
+    """
+    `write_xyz(filename::AbstractString, atoms::Atoms, path::Array{JVecsF})`
+
+    Write a path to a file .xyz, using `JuLIP Atoms` and `Array{JVecsF}`
+
+    ### Arguments
+    - `filename::AbstractString`
+    - `atoms::Atoms` : JuLIP Atoms object
+    - `path::Array{JVecsF}` : array of atom positions
+    """
+    function write_xyz(filename::AbstractString, atoms::Atoms, path::Array{JVecsF})
+        mode = 'w'
+        for i in 1:length(path)
+            if i > 1 mode = 'a' end
+            set_positions!(atoms, path[i])
+            write_xyz(filename, ASEAtoms(atoms), mode)
+        end
         return 0
     end
 
