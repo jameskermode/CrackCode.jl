@@ -10,12 +10,18 @@ using ASE
 
     using JuLIP: Atoms, mat, get_positions, set_positions!, set_calculator!, set_constraint!,
                                 FixedCell, energy, forces, cutoff
-    using ASE: ASEAtoms
+    import JuLIP: energy, forces
+    using ASE: ASEAtoms, ASECalculator
     using SciScriptTools.ArrayProperty: converged_mean
     include("ManAtoms.jl")
-
-    export potential_energy, potential_forces, cutoff_adjusted,
+    export energy, forces
+                potential_energy, potential_forces, cutoff_adjusted,
                 idealbrittlesolid, calc_matscipy_ibs, plot_potential
+
+    # use ASECalculator with JuLIP Atoms
+    # need energy and forces for JuLIP.minimise! to work
+    energy(calc::ASECalculator, atoms::Atoms) = energy(calc, ASEAtoms(atoms))
+    forces(calc::ASECalculator, atoms::Atoms) = forces(calc, ASEAtoms(atoms))
 
     """
     `potential_energy(atoms::Atoms, potential, r::Array{Float64})`
