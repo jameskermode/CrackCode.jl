@@ -495,6 +495,7 @@ module BoundaryConditions
     using SciScriptTools.Optimise: bisection_search
 
     # required for debug parts
+    # !this needs a major sort to remove logging debug plots from function!
     using Logging
     using ..Plot: plot_atoms, plot_bonds, box_around_point
     using ..Potentials: potential_energy
@@ -531,6 +532,8 @@ module BoundaryConditions
                             ie `separation_length - separation_length*separation_tol`, is considered an open bond
     - `maxsteps::Int = 10` : number of iteration attempts
     - `output_dir::String` : location to output debug plots
+    -  `debug_plots::Bool = false` : output debug plots
+    - `debug_potential_plot::Bool = false` : output debug plots, where the calculator is invloved, only works for JuLIP calculators
 
     ### Returns
     - `K::Float64` : chosen K
@@ -542,7 +545,8 @@ module BoundaryConditions
                             bond_length::Float64, separation_length::Float64, 
                             next_pairs::Array{Tuple{Int, Int}}, across_crack::Array{Tuple{Int, Int}};
                             tip_tol::Float64 = 0.01, bond_length_tol::Float64 = 0.2, separation_tol::Float64 = 0.05, 
-                            maxsteps::Int = 10, output_dir::String = "nothing")
+                            maxsteps::Int = 10, output_dir::String = "nothing", 
+                            debug_plots::Bool = false, debug_potential_plot::Bool = false)
 
         points = Array{Float64}([initial_K])
         K = points[length(points)]
@@ -619,7 +623,8 @@ module BoundaryConditions
             push!(seps_closed_sums, seps_closed_sum)
 
             # plot system and tip
-            if Logging.configure().level == DEBUG
+            # !this needs a major sort to remove logging debug plots from function!
+            if Logging.configure().level == DEBUG && debug_plots == true
                 figure()
                 plot_atoms(atoms, colour = "grey")
                 plot_bonds(atoms, across_crack, label = "pairs: across crack")
@@ -667,7 +672,8 @@ module BoundaryConditions
         info(@sprintf("tip convergenced to be within the tiptolerance for past %s iterations", cons_its))
 
         # plot simple potenital (using dimer) with length tolerances
-        if Logging.configure().level == DEBUG
+        # !this needs a major sort to remove logging debug plots from function!
+        if Logging.configure().level == DEBUG && debug_potential_plot == true
             figure()
             r = collect(linspace(bond_length*0.8, cutoff(atoms.calc)*1.2, 100))
             atoms_pe = Atoms(atoms_subsystem(ASEAtoms(atoms), [1,2]))
@@ -690,7 +696,8 @@ module BoundaryConditions
         end   
 
         # plot difference for given tip and fitted tip
-        if Logging.configure().level == DEBUG
+        # !this needs a major sort to remove logging debug plots from function!
+        if Logging.configure().level == DEBUG && debug_plots == true
             figure()
             iters = collect(1:length(tip_diffs))
             plot(iters, tip_diffs, "o-")
@@ -704,7 +711,8 @@ module BoundaryConditions
         end
 
         # plot sum of separations of next_pairs and across crack
-        if Logging.configure().level == DEBUG
+        # !this needs a major sort to remove logging debug plots from function!
+        if Logging.configure().level == DEBUG && debug_plots == true
             figure()
             x = mat(tip_fs)[1,:]
             y = seps_closed_sums
