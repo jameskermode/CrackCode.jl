@@ -14,7 +14,7 @@ using ASE
     using ASE: ASEAtoms, ASECalculator
     using SciScriptTools.ArrayProperty: converged_mean
     include("ManAtoms.jl")
-    export energy, forces
+    export energy, forces,
                 potential_energy, potential_forces, cutoff_adjusted,
                 idealbrittlesolid, calc_matscipy_ibs, plot_potential
 
