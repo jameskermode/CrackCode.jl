@@ -11,5 +11,6 @@ include("Potentials.jl")
 include("Generic.jl")
 include("Correction.jl")
 include("BoundaryConditions.jl")
+include("Minimise.jl")
 
 end # module
