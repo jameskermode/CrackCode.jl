@@ -11,7 +11,8 @@ module ArcContinuation
     include("Minimise.jl") # need res_s and print_res_s
     # would be nice to get rid of this or match it better with Optim
 
-    export hessian_k, forces_k, gradient_k
+    export hessian_k, forces_k, gradient_k, hessian_arc, xdot,
+                    minimise_newton_method_arc
 
     #=
     - the crucial bit is to be able to differentiate the gradient of the energy
