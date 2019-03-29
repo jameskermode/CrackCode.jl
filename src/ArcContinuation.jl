@@ -200,38 +200,38 @@ module ArcContinuation
 
         # a crude way of extracting the atomistic correction displacements:
         x_help = copy(dofs(atoms))
-        set_positions!(atoms,pos_cryst+k*u_start)
+        set_positions!(atoms, pos_cryst + (k * u_start))
         # we assemble the extended system
-        x_ext = [x_help-dofs(atoms);k]
+        x_ext = [x_help - dofs(atoms); k]
         #now we have them, we revert back to the configuration we started with
-        set_dofs!(atoms,x_help)
+        set_dofs!(atoms, x_help)
 
         x0 = copy(x) # original dofs
         x_ext0 = copy(x_ext) #original extended system
 
         #we replace original configuration and original k with new guess:
         lala = copy(get_positions(atoms))
-        u0_old = k*u_start
-        k = k +ds*xd[N+1]
-        u0_new = k*u_start
-        set_positions!(atoms,lala-u0_old+u0_new)
+        u0_old = k * u_start
+        k = k + (ds * xd[N+1])
+        u0_new = k * u_start
+        set_positions!(atoms, lala - u0_old + u0_new)
         x = dofs(atoms)
-        set_dofs!(atoms,x + ds*xd[1:N])
+        set_dofs!(atoms, x + (ds * xd[1:N]))
 
         #again the crude way of extracting the atomistic information:
         x = dofs(atoms)
         x_help = copy(dofs(atoms))
-        set_positions!(atoms,pos_cryst+k*u_start)
-        x_ext = [x_help-dofs(atoms);k]
-        set_dofs!(atoms,x_help)
+        set_positions!(atoms, pos_cryst + (k * u_start))
+        x_ext = [x_help - dofs(atoms); k]
+        set_dofs!(atoms, x_help)
 
         iteration = 0
         g_ext_norm = 1
 
         #this is the extra equation that closes the system:
-        extra_eqn = dot(x_ext-x_ext0,xd) - ds
-        g_ext = [gradient(atoms);extra_eqn]
-        g_ext0_norm = norm(g_ext,Inf)
+        extra_eqn = dot(x_ext - x_ext0, xd) - ds
+        g_ext = [gradient(atoms); extra_eqn]
+        g_ext0_norm = norm(g_ext, Inf)
 
         f_x0_norm = norm(forces(atoms), Inf)
         x_ext_diff_norm = 0.0; f_diff_norm = 0.0
@@ -239,17 +239,17 @@ module ArcContinuation
         while g_ext_norm > g_tol
             k_old = copy(x_ext[N+1])
             x_old = copy(x_ext[1:N])
-            x_ext -= alpha*(hessian_arc(atoms, u_start, xd) \ g_ext)
+            x_ext -= alpha * (hessian_arc(atoms, u_start, xd) \ g_ext)
             x_ext_diff_norm = norm(x_ext0 - x_ext, Inf)
 
             lala = copy(get_positions(atoms))
-            u0_new = x_ext[N+1]*u_start
-            u0_old = k_old*u_start
-            set_positions!(atoms,lala-u0_old+u0_new)
+            u0_new = x_ext[N+1] * u_start
+            u0_old = k_old * u_start
+            set_positions!(atoms, lala - u0_old + u0_new)
             x = dofs(atoms)
-            set_dofs!(atoms,x-x_old+x_ext[1:N])
-            extra_eqn = dot(x_ext-x_ext0,xd) - ds
-            g_ext = [gradient(atoms);extra_eqn]
+            set_dofs!(atoms, x - x_old + x_ext[1:N])
+            extra_eqn = dot(x_ext - x_ext0, xd) - ds
+            g_ext = [gradient(atoms); extra_eqn]
             g_ext_norm = norm(g_ext, Inf)
             f_diff_norm = norm(f_x0_norm - norm(forces(atoms), Inf), Inf)
 
