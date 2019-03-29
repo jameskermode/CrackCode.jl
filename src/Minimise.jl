@@ -10,6 +10,7 @@ module Minimise
     # able to also find saddle points
     
     # type and print similar to object and function found in Optim.jl
+    # would be nice to get rid of this or match it better with Optim
     mutable struct res_s
         alpha::Float64
         x_tol::Float64
