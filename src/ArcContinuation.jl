@@ -99,20 +99,20 @@ module ArcContinuation
                         gradient_k(atoms, constraint(atoms), u)
 
     """
-    `hessian_arc(atoms::AbstractAtoms, u::JVecsF, xdot::Array{Float64})`
+    `hessian_arc(atoms::AbstractAtoms, u::JVecsF, xd::Array{Float64})`
 
     To solve the extended system, need to assemble it's hessian.
     The system is now of size (3N+1) so the hessian is of size (3N+1)x(3N+1).
     The 3Nx3N part is, as before, of the `hessian(atoms)`.
     The extra column is the `gradient_k(atoms, u)`.
-    The extra row is the `xdot`.
+    The extra row is the xdot, `xd`.
 
     ### Arguments
     - `atoms::AbstractAtoms` : Atoms object
     - `u::JVecsF` : inital displacements such that k is independent of u, k*u
-    - `xdot=Array{Float64}` : xdot() as below
+    - `xd=Array{Float64}` : xdot() as below
     """
-    function hessian_arc(atoms::AbstractAtoms, u::JVecsF, xdot::Array{Float64})
+    function hessian_arc(atoms::AbstractAtoms, u::JVecsF, xd::Array{Float64})
         ha = hessian(atoms)
         Ia = findnz(ha)[1]
         Ja = findnz(ha)[2]
@@ -120,7 +120,7 @@ module ArcContinuation
         N = length(dofs(atoms)) + 1
         I = [ Ia; 1:(N-1); N*ones(Int64,N) ]
         J = [ Ja; N*ones(Int64,N-1); 1:N ]
-        V = [ Va; gradient_k(atoms, u); xdot ]
+        V = [ Va; gradient_k(atoms, u); xd ]
         h = sparse(I, J, V)
 
         return h
@@ -166,7 +166,7 @@ module ArcContinuation
 
     """
     `minimise_newton_method_arc!(atoms::Atoms, pos_cryst::JVecsF, u_start::JVecsF,
-                                k::Float64, xdot::Array{Float64}; 
+                                k::Float64, xd::Array{Float64}; 
                                 ds::Float64 = 0.001, g_tol::Float64 = 1e-5, 
                                 alpha::Float64 = 1.0, max_iterations::Int = 20, verbose = 0)`
 
@@ -177,7 +177,7 @@ module ArcContinuation
     - `pos_cryst::JVecsF` : crystal positions
     - `u_start::JVecsF` : the initial displacements
     - `k::Float64` : stress intensity factor
-    - `xdot::Array{Float64}` : tangent at the previous solution
+    - `xd::Array{Float64}` : tangent at the previous solution, xdot
 
     #### Optional
     - `ds::Float64 = 0.001` : step size
@@ -187,7 +187,7 @@ module ArcContinuation
     - `verbose = 0`
     """
     function minimise_newton_method_arc!(atoms::Atoms, pos_cryst::JVecsF, u_start::JVecsF,
-                                k::Float64, xdot::Array{Float64}; 
+                                k::Float64, xd::Array{Float64}; 
                                 ds::Float64 = 0.001, g_tol::Float64 = 1e-5, 
                                 alpha::Float64 = 1.0, max_iterations::Int = 20, verbose = 0)
     
@@ -212,11 +212,11 @@ module ArcContinuation
         #we replace original configuration and original k with new guess:
         lala = copy(get_positions(atoms))
         u0_old = k*u_start
-        k = k +ds*xdot[N+1]
+        k = k +ds*xd[N+1]
         u0_new = k*u_start
         set_positions!(atoms,lala-u0_old+u0_new)
         x = dofs(atoms)
-        set_dofs!(atoms,x + ds*xdot[1:N])
+        set_dofs!(atoms,x + ds*xd[1:N])
 
         #again the crude way of extracting the atomistic information:
         x = dofs(atoms)
@@ -229,7 +229,7 @@ module ArcContinuation
         g_ext_norm = 1
 
         #this is the extra equation that closes the system:
-        extra_eqn = dot(x_ext-x_ext0,xdot) - ds
+        extra_eqn = dot(x_ext-x_ext0,xd) - ds
         g_ext = [gradient(atoms);extra_eqn]
         g_ext0_norm = norm(g_ext,Inf)
 
@@ -239,7 +239,7 @@ module ArcContinuation
         while g_ext_norm > g_tol
             k_old = copy(x_ext[N+1])
             x_old = copy(x_ext[1:N])
-            x_ext -= alpha*(hessian_arc(atoms, u_start, xdot) \ g_ext)
+            x_ext -= alpha*(hessian_arc(atoms, u_start, xd) \ g_ext)
             x_ext_diff_norm = norm(x_ext0 - x_ext, Inf)
 
             lala = copy(get_positions(atoms))
@@ -248,7 +248,7 @@ module ArcContinuation
             set_positions!(atoms,lala-u0_old+u0_new)
             x = dofs(atoms)
             set_dofs!(atoms,x-x_old+x_ext[1:N])
-            extra_eqn = dot(x_ext-x_ext0,xdot) - ds
+            extra_eqn = dot(x_ext-x_ext0,xd) - ds
             g_ext = [gradient(atoms);extra_eqn]
             g_ext_norm = norm(g_ext, Inf)
             f_diff_norm = norm(f_x0_norm - norm(forces(atoms), Inf), Inf)
