@@ -186,8 +186,6 @@ module ArcContinuation
     - `max_iterations::Int = 20` : maximum number of iterations
     - `verbose = 0`
     """
-    # new variables are: ds (step size), k (stress intensity factor variable, intial is K)
-    # and xdot (tangent at the previous solution)
     function minimise_newton_method_arc!(atoms::Atoms, pos_cryst::JVecsF, u_start::JVecsF,
                                 k::Float64, xdot::Array{Float64}; 
                                 ds::Float64 = 0.001, g_tol::Float64 = 1e-5, 
