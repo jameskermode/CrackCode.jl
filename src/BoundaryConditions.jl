@@ -169,7 +169,7 @@ module BoundaryConditions
         
         u_orig = pos_orig - pos_cryst
         u_fit = u_cle(atoms, tip_f , K, E, nu)
-        info(@sprintf("max(norm.('given' u positions - u fit)): %.1e \n", maximum(norm.(u_orig - u_fit))))
+        info(@sprintf("max(norm.('given' u positions - u fit)): %.1e", maximum(norm.(u_orig - u_fit))))
         
         # restore original atom positions
         set_positions!(atoms, pos_orig)
