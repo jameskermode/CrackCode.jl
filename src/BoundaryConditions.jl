@@ -3,6 +3,7 @@ module BoundaryConditions
     using JuLIP: JVecF, JVecsF, mat, Atoms, set_positions!, get_positions, dofs
     using LsqFit: curve_fit
     using StaticArrays: SVector
+    using AMG: ruge_stuben, solve
 
     export u_cle, hessian_correction, fit_crack_tip_displacements, intersection_line_plane_vector_scale, location_point_plane_types,
                 intersection_line_plane_types, filter_crack_bonds, find_next_bonds_along, find_k, filter_pairs_indices
@@ -47,7 +48,8 @@ module BoundaryConditions
     u_cle(atoms::Atoms, tip::JVecF, K::Float64, E::Float64, nu::Float64) = u_cle(get_positions(atoms), tip, K, E, nu)
 
     """
-    `hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})`
+    `hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int};
+                                            method::AbstractString = "bs", amg_tol::Float64 = 1e-10 )`
 
     Return the corrected displacements, `u_c`, from solving `H \\ g`.
 
@@ -56,18 +58,32 @@ module BoundaryConditions
     - `H::SparseMatrixCSC{Float64,Int64}` : hessian, ie `H = hessian(atoms)`
     - `g::Array{Float64}` : gradient, ie `g = gradient(atoms)`
     - `idof::Array{Int}` : degrees of freedom, ie what indices the hessian and gradient where calculated on
-    """
-    function hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int})
 
+    ### Optional Arguments
+    - `method = "bs"` :  "bs" or "amg", use the auto-algorithm solver, normal backslash `\`, ie triangluar matrix solver in this case
+    or an algebraic multigrid solver.
+    Note does give different answers.
+    - `amg_tol::Float64 = 1e-10` : tolerance of the algebraic multigrid solver, more details in `AMG.solve()`
+    """
+    function hessian_correction(u::JVecsF, H::SparseMatrixCSC{Float64,Int64}, g::Array{Float64}, idof::Array{Int};
+                                                        method::AbstractString = "bs", amg_tol::Float64 = 1e-10 )
         u_c = mat(u)[:]
-        u_c[idof] -=  H \ g
+
+        v = nothing
+        if method == "bs" v = H \ g end
+        if method == "amg"
+            ml = ruge_stuben(H)
+            v = solve(ml, g; tol = amg_tol)
+        end
+
+        u_c[idof] -=  v
         u_c = vecs(u_c)
 
         return u_c
     end
 
     """
-    `hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)`
+    `hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1, method = "bs")`
 
     Return the corrected displacements, `u_c` on an atoms objects, from solving `H \\ g`,
     where `H = hessian(atoms)` and `g = gradient(atoms)`.
@@ -80,8 +96,11 @@ module BoundaryConditions
     ### Optional Arguments:
     - `H = nothing`: provide hessian (fixed for all steps), defaults to calculating hessian of atoms object for each step
     - `steps = 1`: number of hessian correction steps to compute
+    - `method = "bs"` :  "bs" or "amg", use the auto-algorithm solver, normal backslash `\`, ie triangluar matrix solver in this case
+    or an algebraic multigrid solver.
+    Note does give different answers.
     """
-    function hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1)
+    function hessian_correction(atoms::Atoms, u::JVecsF, idof::Array{Int}; H = nothing, steps = 1, method = "bs")
 
         u_c = JVecsF([])
         u_step = u # for step == 1
@@ -92,7 +111,7 @@ module BoundaryConditions
 
             if H == nothing H = hessian(atoms) end
             g = gradient(atoms)
-            u_step = hessian_correction(u_step, H, g, idof)
+            u_step = hessian_correction(u_step, H, g, idof, method)
 
             set_positions!(atoms, pos_original) # revert to original positions
             u_c = u_step
