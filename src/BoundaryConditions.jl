@@ -229,7 +229,6 @@ module BoundaryConditions
 
         # if fitted tip moves move than half of the inner radius
         # automatically recompute the fit on a mask of atoms around the new tip
-        print(update_fit_mask)
         if update_fit_mask == :auto
             if abs.(tip_f - tip_g)[1] > r_a/2
                 update_fit_mask = true
