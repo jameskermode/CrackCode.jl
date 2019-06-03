@@ -135,10 +135,12 @@ module BoundaryConditions
     - `nu::Float64` : Poisson ratio
     - `tip_g::JVecF` : inital guess for tip position
     - `mask = [1,1,1]` : mask which dimensions, [x,y,z], to fit in/vary  
+    - `r_a::Float64` = 0.0 : inner radius of annulus 
+    - `r_b::Float64` = 0.0 : outer radius of annulus
     - `verbose = 0` : `verbose = 1` returns fitted tip and (`LsqFit.curve_fit`) fit object 
     """
     function fit_crack_tip_displacements(atoms::Atoms, pos_cryst::JVecsF, K::Float64, E::Float64, nu::Float64, tip_g::JVecF;
-                                                                        mask = [1,1,1], verbose = 0)
+                                                                        mask = [1,1,1], r_a::Float64 = 0.0, r_b::Float64 = 0.0, verbose = 0)
         
         # function which gives new displacements based on a new tip
         function model(x, p) 
@@ -153,21 +155,31 @@ module BoundaryConditions
             u_g = u_cle(atoms, tip_p, K, E, nu)
             
             # convert to vector format
-            dofs_cryst = dofs(atoms)
-            set_positions!(atoms, pos_cryst + u_g)
-            dofs_u_g = dofs(atoms) - dofs_cryst
+            u_g = u_g[m] # select fit mask atoms
+            u_g_flat = mat(u_g)[:]
 
-            return dofs_u_g 
+            return u_g_flat 
         end
         
+        # mask which atoms to fit on radially
+        function mask_atoms_fit(pos, tip, r_a, r_b)
+            r_d = norm.(pos .- [tip])
+            m = nothing # mask of which atoms to fit on
+            if r_a == 0.0 && r_b ==0.0 # default select all atoms
+                m = Bool.(ones(length(r_d)))
+            else
+                m = r_a .<= r_d .<= r_b # atoms in a circle or annulus
+            end
+            return m 
+        end
+
         # save original positions
         pos_orig = get_positions(atoms)
-        
-        # obtain vectors of final positions to fit against
-        dofs_a = dofs(atoms)
-        set_positions!(atoms, pos_cryst)
-        dofs_cryst = dofs(atoms)
-        dofs_u = dofs_a - dofs_cryst;
+
+        m = mask_atoms_fit(pos_orig, tip_g, r_a, r_b)    
+        u = pos_orig - pos_cryst
+        u = u[m] # select fit mask atoms
+        u_flat = mat(u)[:]  
 
         # initialise p0 depending on mask
         dim = length(find(mask .== 1))
@@ -175,9 +187,9 @@ module BoundaryConditions
         
         # LsqFit.curve_fit
         # model = function which gives new displacements based on a new tip
-        # xdata = zeros(similar(dofs_u)), doesn't really matter, just need a vector of the same length
+        # xdata = zeros(similar(u_flat)), doesn't really matter, just need a vector of the same length
         # ydata = dofs_u, final positions to match
-        fit = curve_fit(model, zeros(similar(dofs_u)), dofs_u, p0)
+        fit = curve_fit(model, zeros(similar(u_flat)), u_flat, p0)
         info(@sprintf("fit crack tip using displacements - converged: %s", fit.converged))
         
         # map p into an all 3 dimensions array, then add to tip for fitted tip 
