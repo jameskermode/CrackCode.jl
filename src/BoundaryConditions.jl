@@ -125,6 +125,9 @@ module BoundaryConditions
                                                         mask = [1,1,1], verbose = 0)`
 
     Fit a crack tip using displacements from `Crackcode.BoundaryConditions.u_cle` using a least square method.
+    On all or some atoms, selected radially, between radii `r_a` and `r_b`.
+    If `r_a` and `r_b` are 0.0 (default values), then all atoms are selected.
+    
     Return the fitted crack tip.
 
     ### Arguments
@@ -137,32 +140,24 @@ module BoundaryConditions
     - `mask = [1,1,1]` : mask which dimensions, [x,y,z], to fit in/vary  
     - `r_a::Float64` = 0.0 : inner radius of annulus 
     - `r_b::Float64` = 0.0 : outer radius of annulus
-    - `verbose = 0` : `verbose = 1` returns fitted tip and (`LsqFit.curve_fit`) fit object 
+    - `update_fit_mask` = false : update the centre of the annulus to the first fit, `tip_g` will remain the same
+    - `verbose = 0` : `verbose = 1` returns fitted tip and (`LsqFit.curve_fit`) fit object
+
+    `update_fit_mask` = :auto
+    the first fit produces `tip_f`, if the difference between it and `tip_g` is greater than half the inner radius `r_a`
+    the annulus’s centre point will update to `tip_f` and re-fit
+
+    `update_fit_mask` = true
+    will update annulus’s centre point around `tip_f` and re fit
+
     """
     function fit_crack_tip_displacements(atoms::Atoms, pos_cryst::JVecsF, K::Float64, E::Float64, nu::Float64, tip_g::JVecF;
-                                                                        mask = [1,1,1], r_a::Float64 = 0.0, r_b::Float64 = 0.0, verbose = 0)
-        
-        # function which gives new displacements based on a new tip
-        function model(x, p) 
-                
-            # map p into an all 3 dimensions array, then add to initial guess of tip
-            pm = Float64.(mask)
-            pm[find(mask .== 1)] = p # where the p values should exist if a full dimension array
-            tip_p = tip_g + JVecF(pm)
+                                                                        mask = [1,1,1], r_a::Float64 = 0.0, r_b::Float64 = 0.0, 
+                                                                        update_fit_mask = false, verbose = 0)
 
-            # calculate new displacements using new tip
-            set_positions!(atoms, pos_cryst)
-            u_g = u_cle(atoms, tip_p, K, E, nu)
-            
-            # convert to vector format
-            u_g = u_g[m] # select fit mask atoms
-            u_g_flat = mat(u_g)[:]
-
-            return u_g_flat 
-        end
-        
         # mask which atoms to fit on radially
-        function mask_atoms_fit(pos, tip, r_a, r_b)
+        function mask_atoms_fit(pos::JVecsF, tip::JVecF, r_a::Float64, r_b::Float64)
+        
             r_d = norm.(pos .- [tip])
             m = nothing # mask of which atoms to fit on
             if r_a == 0.0 && r_b ==0.0 # default select all atoms
@@ -170,38 +165,89 @@ module BoundaryConditions
             else
                 m = r_a .<= r_d .<= r_b # atoms in a circle or annulus
             end
+            
             return m 
         end
 
+        function masked_fit(pos_orig::JVecsF, tip::JVecF, r_a::Float64, r_b::Float64, tip0::JVecF)
+            
+                # function which gives new displacements based on a new tip
+            function model(x, p) 
+
+                # map p into an all 3 dimensions array, then add to initial guess of tip
+                pm = Float64.(mask)
+                pm[find(mask .== 1)] = p # where the p values should exist if a full dimension array
+                tip_p = tip_g + JVecF(pm)
+
+                # calculate new displacements using new tip
+                set_positions!(atoms, pos_cryst)
+                u_g = u_cle(atoms, tip_p, K, E, nu)
+
+                # convert to vector format
+                u_g = u_g[m]
+                u_g_flat = mat(u_g)[:]
+
+                return u_g_flat 
+            end
+                
+            dim = length(find(mask .== 1))
+            p0 = zeros(dim)
+                
+            m = mask_atoms_fit(pos_orig, tip, r_a, r_b)    
+            u = pos_orig - pos_cryst
+            u = u[m]
+            u_flat = mat(u)[:]  
+            
+            # LsqFit.curve_fit
+            # model = function which gives new displacements based on a new tip
+            # xdata = zeros(similar(dofs_u)), doesn't really matter, just need a vector of the same length
+            # ydata = dofs_u, final positions to match
+            fit = curve_fit(model, zeros(similar(u_flat)), u_flat, p0)
+            info(@sprintf("fit crack tip using displacements - converged: %s", fit.converged))
+            # map p into an all 3 dimensions array, then add to tip for fitted tip 
+            p = fit.param
+            pm = Float64.(mask)
+            pm[find(mask .== 1)] = p # where the p values should exist in a full dimension array
+            tip_f = tip0 + JVecF(pm)    
+            
+            return tip_f, fit
+        end
+
+        # incorrect definition of annulus
+        if r_a > r_b
+            warn(@sprintf("Arguement error: r_a should be < r_b"))
+            return 1
+        end
+            
         # save original positions
         pos_orig = get_positions(atoms)
-
-        m = mask_atoms_fit(pos_orig, tip_g, r_a, r_b)    
-        u = pos_orig - pos_cryst
-        u = u[m] # select fit mask atoms
-        u_flat = mat(u)[:]  
-
-        # initialise p0 depending on mask
+        
+        # initialise p0 depending on dimensional mask
         dim = length(find(mask .== 1))
         p0 = zeros(dim)
-        
-        # LsqFit.curve_fit
-        # model = function which gives new displacements based on a new tip
-        # xdata = zeros(similar(u_flat)), doesn't really matter, just need a vector of the same length
-        # ydata = dofs_u, final positions to match
-        fit = curve_fit(model, zeros(similar(u_flat)), u_flat, p0)
-        info(@sprintf("fit crack tip using displacements - converged: %s", fit.converged))
-        
-        # map p into an all 3 dimensions array, then add to tip for fitted tip 
-        p = fit.param
-        pm = Float64.(mask)
-        pm[find(mask .== 1)] = p # where the p values should exist in a full dimension array
-        tip_f = tip_g + JVecF(pm)
+        tip_f, fit = masked_fit(pos_orig, tip_g, r_a, r_b, tip_g)
+
+        # if fitted tip moves move than half of the inner radius
+        # automatically recompute the fit on a mask of atoms around the new tip
+        print(update_fit_mask)
+        if update_fit_mask == :auto
+            if abs.(tip_f - tip_g)[1] > r_a/2
+                update_fit_mask = true
+            end
+        end
+        if update_fit_mask == true
+            info(@sprintf("update fit mask annulus"))
+            # double fit
+            # move the annulus to the fitted tip
+            # as a propagating crack, the tip can leave the original annulus area
+            # so update mask around new tip, keep original centre point the same
+            tip_f, fit = masked_fit(pos_orig, tip_f, r_a, r_b, tip_g)
+        end
         
         u_orig = pos_orig - pos_cryst
         u_fit = u_cle(atoms, tip_f , K, E, nu)
         info(@sprintf("max(norm.('given' u positions - u fit)): %.1e", maximum(norm.(u_orig - u_fit))))
-        
+
         # restore original atom positions
         set_positions!(atoms, pos_orig)
 
